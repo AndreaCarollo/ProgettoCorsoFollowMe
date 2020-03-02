@@ -9,9 +9,9 @@ find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR})
-include_directories()
 # select executable
 add_executable(People peopledect.cpp)
 # add library
 # add target libraries
-target_link_libraries(People ${OpenCV_LIBS} realsense2::realsense2)
+target_link_libraries(People ${OpenCV_LIBS})
+target_link_libraries(People ${realsense2_LIBRARY})
