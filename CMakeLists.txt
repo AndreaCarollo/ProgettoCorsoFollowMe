@@ -11,7 +11,9 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR})
 # select executable
 add_executable(People peopledect.cpp)
+add_library(Person_LIB person.cpp)
 # add library
 # add target libraries
 target_link_libraries(People ${OpenCV_LIBS})
 target_link_libraries(People ${realsense2_LIBRARY})
+target_link_libraries(People Person_LIB)
