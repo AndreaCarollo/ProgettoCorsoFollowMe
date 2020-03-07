@@ -21,10 +21,10 @@ using namespace std;
 int main()
 {
     // TO DO: convert into a realsense video streaming
-    // VideoCapture sequence("/home/andrea/Documents/Robotics/Dataset/Our_Video/test4.mp4");
-    VideoCapture cap(0);
+    VideoCapture sequence("/home/andrea/Documents/Robotics_FollowMe/Dataset/Our_Video/test4.mp4");
+    // VideoCapture cap("/home/andrea/Documents/Robotics_FollowMe/Dataset/Our_Video/test1.mp4");
 
-    if (!cap.isOpened())
+    if (!sequence.isOpened())
     {
         cout << "Could not read video file" << endl;
         return 1;
@@ -70,7 +70,7 @@ int main()
 
     for (int i = 0; i < 1000; i++)
     {
-        cap >> frame;
+        sequence >> frame;
         if (i == 0 || ROIs.size() == 0)
         {
             cvtColor(frame, frame_gray, COLOR_RGB2GRAY);
