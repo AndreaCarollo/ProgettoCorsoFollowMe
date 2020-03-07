@@ -63,3 +63,20 @@ void detection_on_frame(cv::Mat *frame, vector<Rect> *peoples)
     /* code */
     /* do detection of the peoples on the frame */
 }
+
+// Take into consideration only the ROI near the center of the camera
+void person::remove_ROIs(cv::Point center, std::vector<cv::Rect> ROIs, double thr)
+{
+    std::vector<double> dist;
+    for(int i = 0; i < ROIs.size(); i++){
+        dist.push_back(eucledian_norm(center, (ROIs[i].br() + ROIs[i].tl()) * 0.5));
+    }
+    int min = min_element(dist.begin(), dist.end()) - dist.begin();
+    if(dist[min] < thr)
+        boundingBox = ROIs[min];
+}
+
+// Function for computing the distance between two points on a plane
+float eucledian_norm(cv::Point p1, cv::Point p2){
+    return sqrt( (float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)) );
+}

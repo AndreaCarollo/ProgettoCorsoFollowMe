@@ -53,6 +53,9 @@ public:
 
     void calc_hist(cv::Mat *ROI);
 
+    void remove_ROIs(cv::Point center, std::vector<cv::Rect> ROIs, double thr);  // tiene solo la persona nel centro
+    float eucledian_norm(cv::Point p1, cv::Point p2);
+
     ~person();
 };
 
