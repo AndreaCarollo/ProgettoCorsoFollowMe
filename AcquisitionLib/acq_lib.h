@@ -24,7 +24,6 @@
 #include <pcl/console/parse.h>
 
 
-
 // Definition of a new type variable for the point cloud
 typedef pcl::PointCloud<pcl::PointXYZ>::Ptr PntCld;
 
