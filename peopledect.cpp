@@ -20,8 +20,8 @@ using namespace std;
 int main()
 {
     // TO DO: convert into a realsense video streaming
-    // VideoCapture cap("/home/andrea/Documents/Robotics/Dataset/Our_Video/test1.mp4");
-    VideoCapture cap(0);
+    VideoCapture cap("/home/andrea/Documents/Robotics/Dataset/Our_Video/test4.mp4");
+    // VideoCapture cap(0);
 
     if (!cap.isOpened())
     {
@@ -81,11 +81,29 @@ int main()
         {
 
             people_cascade.detectMultiScale(frame, ROIs, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-            upbody_cascade.detectMultiScale(frame, ROIs, 1.05, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+            vector<Rect> ROIs_up;
+            upbody_cascade.detectMultiScale(frame, ROIs_up, 1.5, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+
+            for( int j = 0; j < ROIs_up.size(); j++)
+                ROIs.push_back(ROIs_up[j]);
+
+            // TO DO: add a function to manage the two detection in order to understand if the upperbody dect is into the fulbody dect
+            /* code */
 
             if (ROIs.size() > 1)
             {
-                // ROI = ROIs[0];
+                // TO DO: understand which rectangle is my target
+                /* code */
+
+                ROI = ROIs[0];
+                // person target = person(ROI);
+                trackers.clear();
+                trackers.add(tracker, frame, ROI);
+                trackers.update(frame);
+                for (int j = 0; j < ROIs.size(); j++)
+                {
+                    rectangle(frame, ROIs[j], Scalar(0, 255, 0), 3, 8, 0);
+                }
             }
             else if (ROIs.size() == 1)
             {
@@ -111,27 +129,35 @@ int main()
 
             // apply calssifier to each frame
             vector<Rect> peoples;
-            //cvtColor(frame, frame_gray, COLOR_RGB2GRAY);
-            // image equalization to increse the performances
-            //equalizeHist(frame_gray, frame_gray);
+            vector<Rect> peoples_up;
 
-            // face detection [method in the class] + scale handling
-            // if use fullbody                1.05, 5
-            // if use haarcascade pedestrian: 1.5 , 30
-            // both min Size(50,50)
+            /* face detection [method in the class] + scale handling
+            * if use fullbody                1.05, 5
+            * if use haarcascade pedestrian: 1.5 , 30
+            * both min Size(50,50) 
+            * */
             // people_cascade.detectMultiScale(frame_gray, peoples, 1.05, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
             people_cascade.detectMultiScale(frame, peoples, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-            upbody_cascade.detectMultiScale(frame, peoples, 1.05, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+            upbody_cascade.detectMultiScale(frame, peoples_up, 1.05, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
 
-            // display the results
+            for( int j = 0; j < peoples_up.size(); j++)
+                peoples.push_back(peoples_up[j]);
+
+            // display the results of detection
             for (int j = 0; j < peoples.size(); j++)
             {
                 rectangle(frame, peoples[j], Scalar(0, 255, 0), 3, 8, 0);
             }
 
+            // Update Tracker
             trackers.update(frame);
+
+            // Update Target
             // target.update(trackers.getObjects()[0]);
             // rectangle(frame, target.boundingBox, Scalar(0, 0, 255), 3, 8, 0);
+
+            // TO DO: Update Robot Status
+            
 
             rectangle(frame, trackers.getObjects()[0], Scalar(255, 0, 0), 3, 8, 0);
 
