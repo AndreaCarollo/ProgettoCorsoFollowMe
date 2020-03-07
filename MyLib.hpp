@@ -13,13 +13,11 @@
 #include <stdlib.h>
 #include <iostream>
 
-
 // LIBRARY FUNCTIONS
 
 class person
 {
 private:
-
 public:
     /* data */
     cv::Rect boundingBox;
@@ -35,8 +33,8 @@ public:
     std::vector<int> ir_position3D;
 
     int proof;
-    std::vector< std::vector<int>> pos2D_story;
-    std::vector< std::vector<int>> pos3D_story;
+    std::vector<std::vector<int>> pos2D_story;
+    std::vector<std::vector<int>> pos3D_story;
 
     // for histogram
     cv::Mat *b_hist;
@@ -48,8 +46,8 @@ public:
     void update(cv::Rect new_ROI);
     void update_story();
 
-    void get_ir_pos();     // trasforma 2d rgb in 2d ir
-    void get_proof();      // legge pcl
+    void get_ir_pos(); // trasforma 2d rgb in 2d ir
+    void get_proof();  // legge pcl
 
     void calc_hist(cv::Mat *ROI);
 
