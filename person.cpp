@@ -12,11 +12,11 @@ using namespace cv;
 using namespace std;
 
 
-person::person(cv::Rect ROI)
+person::person()
 {
-    boundingBox = ROI;
-    point2D = (ROI.br() + ROI.tl()) * 0.5;
-    position2D = vector<int>{point2D.x, point2D.y};
+    //boundingBox = ROI;
+    //point2D = (ROI.br() + ROI.tl()) * 0.5;
+    //position2D = vector<int>{point2D.x, point2D.y};
     // position3D = vector<int>{point2D.x, point2D.y, profondità};
 }
 
@@ -74,9 +74,18 @@ void person::remove_ROIs(cv::Point center, std::vector<cv::Rect> ROIs, double th
     int min = min_element(dist.begin(), dist.end()) - dist.begin();
     if(dist[min] < thr)
         boundingBox = ROIs[min];
+    else
+        printf("No ROI satisfy the threshold\n");
 }
 
 // Function for computing the distance between two points on a plane
-float eucledian_norm(cv::Point p1, cv::Point p2){
+float person::eucledian_norm(cv::Point p1, cv::Point p2)
+{
     return sqrt( (float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)) );
+}
+
+// Find the target with the QR code
+void person::QR_code()
+{
+    
 }
