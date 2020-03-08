@@ -85,7 +85,31 @@ float person::eucledian_norm(cv::Point p1, cv::Point p2)
 }
 
 // Find the target with the QR code
-void person::QR_code()
+void person::QR_code(Mat frame)
 {
-    
+    QRCodeDetector QRdetector;
+    Mat QR_bbox;
+    string data = QRdetector.detectAndDecode(frame, QR_bbox);
+    if(data.length() > 0)
+    {
+        cout << "Decoded Data : " << data << endl;
+        display_QR(frame, QR_bbox);
+    }
+}
+
+// Display QR code
+void person::display_QR(cv::Mat frame, cv::Mat QR_bbox)
+{
+    line(frame, Point2f(QR_bbox.at<float>(0,0), QR_bbox.at<float>(0,1)),
+                Point2f(QR_bbox.at<float>(0,2), QR_bbox.at<float>(0,3)),
+                Scalar(255, 0, 0), 3);
+    line(frame, Point2f(QR_bbox.at<float>(0,2), QR_bbox.at<float>(0,3)),
+                Point2f(QR_bbox.at<float>(0,4), QR_bbox.at<float>(0,5)),
+                Scalar(255, 0, 0), 3);
+    line(frame, Point2f(QR_bbox.at<float>(0,4), QR_bbox.at<float>(0,5)),
+                Point2f(QR_bbox.at<float>(0,6), QR_bbox.at<float>(0,7)),
+                Scalar(255, 0, 0), 3);
+    line(frame, Point2f(QR_bbox.at<float>(0,6), QR_bbox.at<float>(0,7)),
+                Point2f(QR_bbox.at<float>(0,0), QR_bbox.at<float>(0,1)),
+                Scalar(255, 0, 0), 3);
 }

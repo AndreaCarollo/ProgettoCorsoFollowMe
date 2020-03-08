@@ -70,7 +70,7 @@ int main()
         
         if (ROIs.size() > 0)
         {
-            user.remove_ROIs(frame_center, ROIs, 100.0);
+            user.remove_ROIs(frame_center, ROIs, 50.0);
         }
 
         /*
@@ -81,6 +81,9 @@ int main()
         */
 
         rectangle(frame, user.boundingBox, Scalar(0, 255, 0), 3, 8, 0);
+
+        // QR code detection
+        user.QR_code(frame);
 
         imshow("Video", frame);
         if (waitKey(1) == 27)
