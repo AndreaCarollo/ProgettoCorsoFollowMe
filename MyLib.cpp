@@ -11,7 +11,6 @@
 using namespace cv;
 using namespace std;
 
-
 person::person(cv::Rect ROI)
 {
     boundingBox = ROI;
@@ -62,4 +61,30 @@ void detection_on_frame(cv::Mat *frame, vector<Rect> *peoples)
 {
     /* code */
     /* do detection of the peoples on the frame */
+}
+
+vector<Rect> compare_rect(vector<Rect> rect_up, vector<Rect> rect_full)
+{
+    vector<Rect> new_rect;
+    for (int k = 0; k < rect_up.size(); k++)
+    {
+        bool logic = false;
+        for (int j = 0; j < rect_full.size(); j++)
+        {
+            Point centreA = (rect_up[k].tl() - rect_up[k].br()) / 2;
+            logic = rect_full[j].contains(centreA);
+            if (logic == true)
+            {
+                break;
+            }
+        }
+        if (logic == false)
+        {
+            new_rect.push_back(rect_up[k]);
+        }
+    }
+
+    new_rect.insert(new_rect.end(), rect_full.begin(), rect_full.end());
+
+    return new_rect;
 }

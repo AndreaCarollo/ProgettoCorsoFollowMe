@@ -55,3 +55,8 @@ public:
 };
 
 void detection_on_frame(cv::Mat *frame, std::vector<cv::Rect> *peoples);
+
+
+// Compare two vector of rectangle, check if the rect_up (first element) is contained into the second vector
+// Return a vector of non overlapped rectangles
+std::vector< cv::Rect > compare_rect(std::vector< cv::Rect > rect_up, std::vector< cv::Rect > rect_full);

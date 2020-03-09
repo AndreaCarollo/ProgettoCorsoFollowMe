@@ -20,7 +20,8 @@ using namespace std;
 int main()
 {
     // TO DO: convert into a realsense video streaming
-    VideoCapture cap("/home/andrea/Documents/Robotics/Dataset/Our_Video/test4.mp4");
+    // VideoCapture cap("/home/andrea/Documents/Robotics/Dataset/Our_Video/test1.mp4");
+    VideoCapture cap("../../../Dataset/Our_Video/test1.mp4");
     // VideoCapture cap(0);
 
     if (!cap.isOpened())
@@ -49,7 +50,7 @@ int main()
     // List of tracker types in OpenCV 3.4.1
     string trackerTypes[8] = {"BOOSTING", "MIL", "KCF", "TLD",
                               "MEDIANFLOW", "GOTURN", "MOSSE", "CSRT"};
-    string trackerType = trackerTypes[7];
+    string trackerType = trackerTypes[0];
     MultiTracker trackers;
     Ptr<Tracker> tracker;
 
@@ -79,33 +80,51 @@ int main()
         cap >> frame;
         if (i == 0 || ROIs.size() == 0)
         {
-
-            people_cascade.detectMultiScale(frame, ROIs, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+            vector<Rect> ROIs_full;
             vector<Rect> ROIs_up;
-            upbody_cascade.detectMultiScale(frame, ROIs_up, 1.5, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
 
-            for( int j = 0; j < ROIs_up.size(); j++)
-                ROIs.push_back(ROIs_up[j]);
+            people_cascade.detectMultiScale(frame, ROIs_full, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+
+            if (ROIs_full.empty())
+            {
+                upbody_cascade.detectMultiScale(frame, ROIs_up, 1.5, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+            }
 
             // TO DO: add a function to manage the two detection in order to understand if the upperbody dect is into the fulbody dect
             /* code */
+            // for (int j = 0; j < ROIs_up.size(); j++)
+            //     ROIs.push_back(ROIs_up[j]);
 
-            if (ROIs.size() > 1)
+            bool flag_no_ROI = false;
+            if (ROIs_full.empty() & !(ROIs_up.empty()))
+            {
+                ROIs = ROIs_up;
+            }
+            else if (!(ROIs_full.empty()) & ROIs_up.empty())
+            {
+                ROIs = ROIs_full;
+            }
+            else if (!(ROIs_full.empty()) & !(ROIs_up.empty()))
+            {
+                // TO DO: compare each rectangle..
+                ROIs = compare_rect(ROIs_up, ROIs_full);
+            }
+            else
+            {
+                flag_no_ROI = true;
+            }
+
+            // if( !(flag_no_ROI) ){ }
+            bool go_on = false;
+
+            if (flag_no_ROI == false)
             {
                 // TO DO: understand which rectangle is my target
                 /* code */
-
-                ROI = ROIs[0];
-                // person target = person(ROI);
-                trackers.clear();
-                trackers.add(tracker, frame, ROI);
-                trackers.update(frame);
-                for (int j = 0; j < ROIs.size(); j++)
-                {
-                    rectangle(frame, ROIs[j], Scalar(0, 255, 0), 3, 8, 0);
-                }
+                go_on = true;
             }
-            else if (ROIs.size() == 1)
+
+            if (go_on == true)
             {
                 ROI = ROIs[0];
                 // person target = person(ROI);
@@ -114,11 +133,11 @@ int main()
                 trackers.update(frame);
                 for (int j = 0; j < ROIs.size(); j++)
                 {
-                    rectangle(frame, ROIs[j], Scalar(0, 255, 0), 3, 8, 0);
+                    cv::rectangle(frame, ROIs[j], Scalar(0, 255, 0), 3, 8, 0);
                 }
             }
 
-            imshow("Video", frame);
+            cv::imshow("Video", frame);
             if (waitKey(1) == 27)
             {
                 return 0;
@@ -128,40 +147,43 @@ int main()
         {
 
             // apply calssifier to each frame
-            vector<Rect> peoples;
-            vector<Rect> peoples_up;
+            vector<Rect> ROIs_full;
+            vector<Rect> ROIs_up;
 
             /* face detection [method in the class] + scale handling
             * if use fullbody                1.05, 5
             * if use haarcascade pedestrian: 1.5 , 30
             * both min Size(50,50) 
             * */
-            // people_cascade.detectMultiScale(frame_gray, peoples, 1.05, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-            people_cascade.detectMultiScale(frame, peoples, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-            upbody_cascade.detectMultiScale(frame, peoples_up, 1.05, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+            // people_cascade.detectMultiScale(frame_gray, ROIs_full, 1.05, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+            people_cascade.detectMultiScale(frame, ROIs_full, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
 
-            for( int j = 0; j < peoples_up.size(); j++)
-                peoples.push_back(peoples_up[j]);
+            if (ROIs_full.empty())
+            {
+                upbody_cascade.detectMultiScale(frame, ROIs_up, 1.5, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+            }
+
+            for (int j = 0; j < ROIs_up.size(); j++)
+                ROIs_full.push_back(ROIs_up[j]);
 
             // display the results of detection
-            for (int j = 0; j < peoples.size(); j++)
+            for (int j = 0; j < ROIs_full.size(); j++)
             {
-                rectangle(frame, peoples[j], Scalar(0, 255, 0), 3, 8, 0);
+                cv::rectangle(frame, ROIs_full[j], Scalar(0, 255, 0), 3, 8, 0);
             }
 
             // Update Tracker
             trackers.update(frame);
 
-            // Update Target
+            // TO DO: Update Target
             // target.update(trackers.getObjects()[0]);
             // rectangle(frame, target.boundingBox, Scalar(0, 0, 255), 3, 8, 0);
 
             // TO DO: Update Robot Status
-            
 
-            rectangle(frame, trackers.getObjects()[0], Scalar(255, 0, 0), 3, 8, 0);
+            cv::rectangle(frame, trackers.getObjects()[0], Scalar(255, 0, 0), 3, 8, 0);
 
-            imshow("Video", frame);
+            cv::imshow("Video", frame);
             if (waitKey(1) == 27)
             {
                 return 0;
