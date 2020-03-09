@@ -3,9 +3,9 @@
 # This sheet is intended for solving some of the issues that could be encountered when working with this repository, realsense libraries, pcl libraries etc. Authors posted here all the solutions to the known issues they had.
 
 
-# - Third party realsense libraries missing -
+# ISSUE 1 - Third party realsense libraries missing -
 
-# Issue: some libraries could be found on the librealsense repo, under third-party folder. These are not installed by simply compiling, causing some example code to do not work properly or do not work at all. This issue could be solved by configuring accurately the various CMakeLists.txt files around the librealsense tree but, it is proposed a faster way to do that:
+# Description: some libraries could be found on the librealsense repo, under third-party folder. These are not installed by simply compiling, causing some example code to do not work properly or do not work at all. This issue could be solved by configuring accurately the various CMakeLists.txt files around the librealsense tree but, it is proposed a faster way to do that:
 # 1- identify what are the libraries missing (cmake or make errors when compiling code)
 # 2- check if these libraries belong to third-party folder
 # 3- if it is a folder of libraries, most probably exists an installation in apt (e.g. the tclap folder libraries could be installed typing 'sudo apt install libtclap-dev' from console)
