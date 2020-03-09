@@ -94,6 +94,7 @@ void person::QR_code(Mat frame)
     {
         cout << "Decoded Data : " << data << endl;
         display_QR(frame, QR_bbox);
+        verify_user(QR_bbox, data);
     }
 }
 
@@ -113,3 +114,20 @@ void person::display_QR(cv::Mat frame, cv::Mat QR_bbox)
                 Point2f(QR_bbox.at<float>(0,0), QR_bbox.at<float>(0,1)),
                 Scalar(255, 0, 0), 3);
 }
+
+// Check if the user has the correct QR code
+void person::verify_user(cv::Mat QR_bbox, std::string data){
+    if (boundingBox.tl().x < QR_bbox.at<float>(0,0) &&
+        boundingBox.tl().y < QR_bbox.at<float>(0,1) &&
+        boundingBox.br().x > QR_bbox.at<float>(0,4) &&
+        boundingBox.br().y > QR_bbox.at<float>(0,5) &&
+        data == "TRUE")
+        printf("The bounding box corresponds to the user!\n");
+    else
+        Rect boundingBox;  // l'idea è di annullare il contenuto
+}                          
+
+// COMMENTI
+// Probabilmente si può migliorare l'if con la funzione contains() del boundingBox.
+// Forse bisogna usare una variabile globale (nella classe person) per identificare l'user
+// così quando si fa la detection di "ostacoli" si sa che uno di questi è proprio l'utente

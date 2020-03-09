@@ -58,6 +58,7 @@ public:
 
     void QR_code(cv::Mat frame);  // detect and decode the QR code
     void display_QR(cv::Mat frame, cv::Mat QR_bbox);  // display a bbox on QR code
+    void verify_user(cv::Mat QR_bbox, std::string data);  // check the correct user
 
     ~person();
 };
