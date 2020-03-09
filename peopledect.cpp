@@ -95,24 +95,24 @@ int main()
             // for (int j = 0; j < ROIs_up.size(); j++)
             //     ROIs.push_back(ROIs_up[j]);
 
-            bool flag_no_ROI = false;
-            if (ROIs_full.empty() & !(ROIs_up.empty()))
-            {
-                ROIs = ROIs_up;
-            }
-            else if (!(ROIs_full.empty()) & ROIs_up.empty())
-            {
-                ROIs = ROIs_full;
-            }
-            else if (!(ROIs_full.empty()) & !(ROIs_up.empty()))
-            {
-                // TO DO: compare each rectangle..
-                ROIs = compare_rect(ROIs_up, ROIs_full);
-            }
-            else
-            {
-                flag_no_ROI = true;
-            }
+            // bool flag_no_ROI = false;
+            // if (ROIs_full.empty() & !(ROIs_up.empty()))
+            // {
+            //     ROIs = ROIs_up;
+            // }
+            // else if (!(ROIs_full.empty()) & ROIs_up.empty())
+            // {
+            //     ROIs = ROIs_full;
+            // }
+            // else if (!(ROIs_full.empty()) & !(ROIs_up.empty()))
+            // {
+            //     // TO DO: compare each rectangle..
+            //     ROIs = compare_rect(ROIs_up, ROIs_full);
+            // }
+            // else
+            // {
+            //     flag_no_ROI = true;
+            // }
 
             // if( !(flag_no_ROI) ){ }
             bool go_on = false;
