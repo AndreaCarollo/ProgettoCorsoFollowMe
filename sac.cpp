@@ -47,8 +47,8 @@ int
   seg.setDistanceThreshold (0.01);
 
   seg.setInputCloud (cloud);
-  seg.segment (*inliers, *coefficients);
-
+  seg.segment (*inliers, *coefficients); // problem hereeeeeeeeeeeeeeeeeeeeeeee
+  
   if (inliers->indices.size () == 0)
   {
     PCL_ERROR ("Could not estimate a planar model for the given dataset.");
