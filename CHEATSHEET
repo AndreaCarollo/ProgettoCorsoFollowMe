@@ -11,3 +11,15 @@
 # 3- if it is a folder of libraries, most probably exists an installation in apt (e.g. the tclap folder libraries could be installed typing 'sudo apt install libtclap-dev' from console)
 # 3b- if it is a loose file, simply copy it under /usr/include
 # 4- done!
+
+#----------------------------------------------------------------------------------------------------------------------------
+
+
+# ISSUE 2 - Missing pcl dependencies - 
+
+# Description: when compiling some pcl examples, cmake command gives a lot of strange stuff, saying that something is missing. Most probably they're missing the mandatory dependencies.
+# 1- go to http://pointclouds.org/documentation/tutorials/compiling_pcl_posix.php#mandatory
+# 2- look for the mandatory dependencies and install them one by one
+# NOTE: they're all available through apt/apt-get: libboost-dev, libeigen3-dev, libflann-dev, vtk7 (this last throws in other dependency libs)
+# 3- done!
+
