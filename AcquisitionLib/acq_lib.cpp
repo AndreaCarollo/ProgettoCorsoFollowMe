@@ -1,18 +1,19 @@
 #include "./acq_lib.h"
 
 
-#define IMAGE_WIDTH 640
-#define IMAGE_HEIGTH 480
-#define FRAME_RATE 30
+const int IMAGE_WIDTH  = 640;
+const int IMAGE_HEIGTH = 480;
+const int FRAME_RATE   =  30;
 
 cv::Size IMAGE_SIZE = cv::Size(IMAGE_WIDTH, IMAGE_HEIGTH);
 
 
 // --------------- FUNCTIONS --------------- //
 
+
 /* Set the camera settings */
 void camSettings(rs2::config *cfg){
-
+    
     //Add desired streams to configuration
     cfg->enable_stream(RS2_STREAM_COLOR,    IMAGE_WIDTH, IMAGE_HEIGTH, RS2_FORMAT_BGR8, FRAME_RATE);
     cfg->enable_stream(RS2_STREAM_INFRARED, IMAGE_WIDTH, IMAGE_HEIGTH, RS2_FORMAT_Y8,   FRAME_RATE);
@@ -23,23 +24,35 @@ void camSettings(rs2::config *cfg){
 
 /* Get the color frame from the camera and transform it in a OpenCV Mat */
 void RGB_acq(cv::Mat *color_frame, rs2::frameset frames){
+    
+    // Align the color frame to the depth image
+    /*
+    rs2::align align_obj(RS2_STREAM_DEPTH);
+    frames = align_obj.process(frames);
+    */
 
     // Acquisition of the color frame
-    rs2::video_frame color = frames.get_infrared_frame();
+    rs2::video_frame color = frames.get_color_frame();
     
     // Convert the rs2 frame in a OpenCV Mat
-    cv::Mat color_frame(IMAGE_SIZE, CV_8UC3, (void *) color.get_data(), cv::Mat::AUTO_STEP);
+    cv::Mat tmp( IMAGE_WIDTH, IMAGE_HEIGTH, CV_8UC3, (void *) color.get_data(), cv::Mat::AUTO_STEP);
+    (*color_frame) = tmp;   // Potrebbe dare segmentation
+
 }
 
 
 /* Get the infrared frame from the camera and transform it in a OpenCV Mat */
 void IR_acq(cv::Mat *infrared_frame, rs2::frameset frames){
     
+    int w  = IMAGE_WIDTH;
+    int h  = IMAGE_HEIGTH;
+
     // Acquisition of the infrared frame
     rs2::video_frame infrared = frames.get_infrared_frame();
     
     // Convert the rs2 frame in a OpenCV Mat
-    cv::Mat infrared_frame(IMAGE_SIZE, CV_8UC1, (void *) infrared.get_data(), cv::Mat::AUTO_STEP);
+    cv::Mat tmp( IMAGE_WIDTH, IMAGE_HEIGTH, CV_8UC1, (void *) infrared.get_data(), cv::Mat::AUTO_STEP);
+    (*infrared_frame) = tmp;
 
 }
 
@@ -47,11 +60,15 @@ void IR_acq(cv::Mat *infrared_frame, rs2::frameset frames){
 /* Get the depth frame from the camera and transform it in a OpenCV Mat */
 void DEPTH_acq(cv::Mat *depth_frame, rs2::frameset frames){
 
+    int w  = IMAGE_WIDTH;
+    int h  = IMAGE_HEIGTH;
+
     // Acquisition of the depth frame
     rs2::video_frame depth = frames.get_depth_frame();
 
     // Convert the rs2 frame in a OpenCV Mat
-    cv::Mat depth_frame(IMAGE_SIZE, CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
+    cv::Mat tmp( IMAGE_WIDTH, IMAGE_HEIGTH, CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
+    (*depth_frame) = tmp;
 
 }
 

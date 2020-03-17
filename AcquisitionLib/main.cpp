@@ -16,7 +16,7 @@ int main() try
     // Initialize the OpenCV frames
     cv::Mat color_frame, infrared_frame, depth_frame;
 
-    // Initialize the point cloud 
+    // Initialize the point cloud
     PntCld cloud;
 
     // initialize the viewer for the point cloud
@@ -27,6 +27,9 @@ int main() try
 
     // Configure and start the pipeline
     p.start(cfg);
+
+    // The camera of the viewer is "initialized"
+    viewer->initCameraParameters();
 
     while(true)
     {
@@ -40,10 +43,7 @@ int main() try
 
         // Load the depth image and transform it in a point cloud (pcl)
         cloud = PC_acq(frames);
-
-        // The camera of the viewer is "initialized"
-        viewer->initCameraParameters();
-
+        
         // Rappresentation of the poit cloud
         PCViewer(cloud, viewer);
 
