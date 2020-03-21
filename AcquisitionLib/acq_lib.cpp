@@ -14,7 +14,7 @@ cv::Size IMAGE_SIZE = cv::Size(IMAGE_WIDTH, IMAGE_HEIGTH);
 /* Set the camera settings */
 void camSettings(rs2::config *cfg){
     
-    //Add desired streams to configuration
+    // Add desired streams to configuration
     cfg->enable_stream(RS2_STREAM_COLOR,    IMAGE_WIDTH, IMAGE_HEIGTH, RS2_FORMAT_BGR8, FRAME_RATE);
     cfg->enable_stream(RS2_STREAM_INFRARED, IMAGE_WIDTH, IMAGE_HEIGTH, RS2_FORMAT_Y8,   FRAME_RATE);
     cfg->enable_stream(RS2_STREAM_DEPTH,    IMAGE_WIDTH, IMAGE_HEIGTH, RS2_FORMAT_Z16,  FRAME_RATE);
@@ -33,25 +33,30 @@ void RGB_acq(cv::Mat *color_frame, rs2::frameset frames){
 
     // Acquisition of the color frame
     rs2::video_frame color = frames.get_color_frame();
+
+    int w = color.get_width();
+    int h = color.get_height();
     
     // Convert the rs2 frame in a OpenCV Mat
-    cv::Mat tmp( IMAGE_WIDTH, IMAGE_HEIGTH, CV_8UC3, (void *) color.get_data(), cv::Mat::AUTO_STEP);
-    (*color_frame) = tmp;   // Potrebbe dare segmentation
+    cv::Mat tmp( cv::Size(w, h), CV_8UC3, (void *) color.get_data(), cv::Mat::AUTO_STEP);
+
+    // Color conversion
+    cv::cvtColor(tmp,(*color_frame),cv::COLOR_RGB2BGR);
 
 }
 
 
 /* Get the infrared frame from the camera and transform it in a OpenCV Mat */
 void IR_acq(cv::Mat *infrared_frame, rs2::frameset frames){
-    
-    int w  = IMAGE_WIDTH;
-    int h  = IMAGE_HEIGTH;
 
     // Acquisition of the infrared frame
     rs2::video_frame infrared = frames.get_infrared_frame();
+
+    int w = infrared.get_width();
+    int h = infrared.get_height();
     
     // Convert the rs2 frame in a OpenCV Mat
-    cv::Mat tmp( IMAGE_WIDTH, IMAGE_HEIGTH, CV_8UC1, (void *) infrared.get_data(), cv::Mat::AUTO_STEP);
+    cv::Mat tmp( cv::Size(w, h), CV_8UC1, (void *) infrared.get_data(), cv::Mat::AUTO_STEP);
     (*infrared_frame) = tmp;
 
 }
@@ -60,14 +65,14 @@ void IR_acq(cv::Mat *infrared_frame, rs2::frameset frames){
 /* Get the depth frame from the camera and transform it in a OpenCV Mat */
 void DEPTH_acq(cv::Mat *depth_frame, rs2::frameset frames){
 
-    int w  = IMAGE_WIDTH;
-    int h  = IMAGE_HEIGTH;
-
     // Acquisition of the depth frame
     rs2::video_frame depth = frames.get_depth_frame();
 
+    int w = depth.get_width();
+    int h = depth.get_height();
+
     // Convert the rs2 frame in a OpenCV Mat
-    cv::Mat tmp( IMAGE_WIDTH, IMAGE_HEIGTH, CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
+    cv::Mat tmp( cv::Size(w, h), CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
     (*depth_frame) = tmp;
 
 }
@@ -99,10 +104,10 @@ PntCld points_to_pcl(const rs2::points& points){
 
 
 /* Transform a depth image to a point cloud */
-PntCld PC_acq( rs2::frameset frames){
+void PC_acq(PntCld *point_cloud, rs2::frameset frames){
 
     // Acquisition of the depth frame
-    rs2::video_frame depth    = frames.get_depth_frame();
+    rs2::video_frame depth = frames.get_depth_frame();
 
     // Initialization of some params
     rs2::pointcloud pc;
@@ -113,7 +118,7 @@ PntCld PC_acq( rs2::frameset frames){
     points = pc.calculate(depth);
 
     // Transform the points object of rs2 in a point cloud of pcl
-    PntCld point_cloud = points_to_pcl(points);
+    *point_cloud = points_to_pcl(points);
 }
 
 
@@ -128,7 +133,7 @@ void PCViewer(PntCld cloud, PntCldV viewer){
         ...
         viewer -> removePointCloud("sample cloud");     // Remove the cloud from the window
     */
-
+    
     // Set all the parameters of the point cloud viewer and add to it the point cloud that we want to reppresent
     viewer->setBackgroundColor(0, 0, 0);
     viewer->addPointCloud<pcl::PointXYZ>(cloud, "sample cloud");

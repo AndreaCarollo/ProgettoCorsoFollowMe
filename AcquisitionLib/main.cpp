@@ -2,19 +2,25 @@
 #include "./acq_lib.h"
 
 
-int main() try
+int main(int argc, char const *argv[]) try
 {
 
-    //Create a configuration for configuring the pipeline with a non default profile
+    // Create a configuration for configuring the pipeline with a non default profile
     rs2::config cfg;
-    //Add desired streams to configuration
-    camSettings(&cfg);
+    
+    // Add desired streams to configuration
+    // camSettings_rec(&cfg);                      // enable stream from the camera
+    cfg.enable_device_from_file((char *) argv[1]);    // Enable stream from a recordered device (.bag file)
+
+    // If we use a recordered device, we must be sure that the stream contains the frames that we will use
+    // ( for example the "file1.bag" does not have the infrared stream )
 
     // Create a Pipeline for the data acquisition from the camera
     rs2::pipeline p;
 
     // Initialize the OpenCV frames
-    cv::Mat color_frame, infrared_frame, depth_frame;
+    // cv::Mat infrared_frame;
+    cv::Mat color_frame, depth_frame;
 
     // Initialize the point cloud
     PntCld cloud;
@@ -38,19 +44,19 @@ int main() try
 
         // Load the images from the camera and convert it in cv::Mat
         RGB_acq(&color_frame, frames);
-        IR_acq(&infrared_frame, frames);
-        DEPTH_acq(&depth_frame, frames);
+        // IR_acq(&infrared_frame, frames);
+        // DEPTH_acq(&depth_frame, frames);
 
         // Load the depth image and transform it in a point cloud (pcl)
-        cloud = PC_acq(frames);
+        PC_acq(&cloud, frames);
         
         // Rappresentation of the poit cloud
         PCViewer(cloud, viewer);
 
         // Rappresentation of the images from the camera
         cv::imshow("color",    color_frame);
-        cv::imshow("infrared", infrared_frame);
-        cv::imshow("depth",    depth_frame);
+        // cv::imshow("infrared", infrared_frame);
+        // cv::imshow("depth",    depth_frame);
 
         // If the ESC button is pressed, the cycle is stopped and the program finishes
         if (cv::waitKey(1) == 27)

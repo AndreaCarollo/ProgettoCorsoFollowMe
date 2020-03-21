@@ -24,7 +24,6 @@
 #include <pcl/console/parse.h>
 
 
-
 // Definition of a new type variable for the point cloud
 typedef pcl::PointCloud<pcl::PointXYZ>::Ptr PntCld;
 
@@ -48,7 +47,7 @@ void IR_acq(cv::Mat *infrared, rs2::frameset frames);
 
 
 /* Get the depth frame from the camera and transform it in a OpenCV Mat */
-void DEPTH_acq(cv::Mat *depth, rs2::frameset frames);
+void DEPTH_acq(cv::Mat *depth_frame, rs2::frameset frames);
 
 
 /* Transform an object point in a point cloud */
@@ -56,7 +55,7 @@ PntCld points_to_pcl(const rs2::points& points);
 
 
 /* Get the depth image from the camera and transform it in a point cloud */
-PntCld PC_acq( rs2::frameset frames);
+void PC_acq(PntCld *point_cloud, rs2::frameset frames);
 
 
 /* Point cloud visualizer */
