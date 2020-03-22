@@ -22,7 +22,7 @@ int main()
 {
     // TO DO: convert into a realsense video streaming
     // VideoCapture cap(0);
-    VideoCapture cap("../../../Dataset/Our_Video/test1.mp4");
+    VideoCapture cap("../../../Dataset/Our_Video/test4.mp4");
 
     if (!cap.isOpened())
     {
@@ -68,8 +68,11 @@ int main()
     if (trackerType == "CSRT")
         tracker = TrackerCSRT::create();
 
-    for (int i = 0; i < 1000; i++)
+    while(true)
     {
+        int i = 0;
+        i++;
+
         cap >> frame;
         if (i == 0 || ROIs.size() == 0)
         {
@@ -87,10 +90,11 @@ int main()
                 ROI = ROIs[0];
             }
 
-            // person target = person(ROI);
-            trackers.clear();
-            trackers.add(tracker, frame, ROI);
-            trackers.update(frame);
+            if(ROIs.size() > 0){
+                trackers.clear();
+                trackers.add(tracker, frame, ROI);
+                trackers.update(frame);
+            }
 
             imshow("Video", frame);
             if (waitKey(1) == 27)

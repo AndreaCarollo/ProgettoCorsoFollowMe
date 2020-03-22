@@ -74,8 +74,10 @@ void person::remove_ROIs(cv::Point center, std::vector<cv::Rect> ROIs, double th
     int min = min_element(dist.begin(), dist.end()) - dist.begin();
     if(dist[min] < thr)
         boundingBox = ROIs[min];
-    else
+    else{
+        Rect boundingBox;
         printf("No ROI satisfy the threshold\n");
+    }
 }
 
 // Function for computing the distance between two points on a plane
@@ -94,7 +96,7 @@ void person::QR_code(Mat frame)
     {
         cout << "Decoded Data : " << data << endl;
         display_QR(frame, QR_bbox);
-        verify_user(QR_bbox, data);
+        // verify_user(QR_bbox, data);
     }
 }
 

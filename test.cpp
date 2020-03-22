@@ -17,11 +17,12 @@
 using namespace cv;
 using namespace std;
 
+
 int main()
 {
     // TO DO: convert into a realsense video streaming
-    // VideoCapture cap("../../../Dataset/Our_Video/test4.mp4");
-    VideoCapture cap(0);
+    // VideoCapture cap(0);
+    VideoCapture cap("../../../Dataset/Our_Video/test4.mp4");
 
     if (!cap.isOpened())
     {
@@ -29,68 +30,98 @@ int main()
         return 1;
     }
 
+    // Steps to write the output video
+    int frame_width = cap.get(CAP_PROP_FRAME_WIDTH); 
+    int frame_height = cap.get(CAP_PROP_FRAME_HEIGHT);
+
+    // VideoWriter object
+    VideoWriter video("out_video.avi",VideoWriter::fourcc('M','J','P','G'),10, Size(frame_width, frame_height));
+
     Mat frame, frame_gray;
     vector<Rect> ROIs;
+    vector<Rect2d> ROIs_track;
     Rect2d ROI;
-
-    person user;
-    Point frame_center;
+    Point center;
+    bool flag_det;  // flag that identifies when detection occurs
 
     /*** Detector initialization ***/
     // String haar_fullbody = "/home/andrea/opencv/sources/opencv/data/haarcascades/haarcascade_fullbody.xml";
     String haar_pedestrian = "../trained/haarcascade_pedestrian.xml";
-    String haar_upbody = "../trained/haarcascade_upperbody.xml";
-
-    // Create classifiers
-    CascadeClassifier people_cascade;
+    CascadeClassifier people_cascade; // Class for the cascade classifier
     people_cascade.load(haar_pedestrian);
 
-    CascadeClassifier upbody_cascade;
-    upbody_cascade.load(haar_upbody);
+    /*** Tracker initialization ***/
+    MultiTracker trackers;
+    std::vector< Ptr<Tracker> > algorithms;
 
-    while (true)
+    // Initialization of the class
+    person user;
+
+    while(true)
     {
         int i = 0;
         i++;
 
-        if (i == 1)
-            frame_center = Point (frame.cols*0.5, frame.rows*0.5);
-        
         cap >> frame;
 
-        people_cascade.detectMultiScale(frame, ROIs, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(150, 200));
-        vector<Rect> ROIs_up;
-        upbody_cascade.detectMultiScale(frame, ROIs_up, 1.5, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(150, 200));
+        // Compute the center of the frame
+        if(i == 1)
+            center = Point (frame.cols*0.5, frame.rows*0.5);
 
-        for( int j = 0; j < ROIs_up.size(); j++)
-            ROIs.push_back(ROIs_up[j]);
+        // DETECTION
+        cvtColor(frame, frame_gray, COLOR_RGB2GRAY);
+        equalizeHist(frame_gray, frame_gray);
+        people_cascade.detectMultiScale(frame_gray, ROIs, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
 
-        // TO DO: add a function to manage the two detection in order to understand if the upperbody dect is into the fulbody dect
-        
-        
-        if (ROIs.size() > 0)
-        {
-            user.remove_ROIs(frame_center, ROIs, 50.0);
+        // TRACKING
+        if(ROIs.size() > 0 && flag_det){
+            for(int j = 0; j < ROIs.size(); j++){
+                algorithms.push_back(TrackerCSRT::create());
+                ROIs_track.push_back((Rect2d)ROIs[j]);
+            }
+
+            trackers.add(algorithms, frame, ROIs_track);
+
+            for(int j = 0; j < ROIs_track.size(); j++){
+                ROIs.push_back(trackers.getObjects()[j]);
+            }
+            flag_det = false;
+        }
+        else{
+            trackers.update(frame);
+            if(trackers.getObjects().size() > 0){
+                for(int j = 0; j < ROIs_track.size(); j++){
+                    ROIs.push_back(trackers.getObjects()[j]);
+                }
+            }
+            else
+                flag_det = true;        
         }
 
-        /*
-        for (int j = 0; j < ROIs.size(); j++)
-        {
-            rectangle(frame, ROIs[j], Scalar(0, 255, 0), 3, 8, 0);
+        // Remove ROIs in order to get only the user one
+        if(ROIs.size() > 1){
+            user.remove_ROIs(center, ROIs, 25);
         }
-        */
 
-        rectangle(frame, user.boundingBox, Scalar(0, 255, 0), 3, 8, 0);
-
-        // QR code detection
+        // Find the QR code
         user.QR_code(frame);
 
+        // VIDEO RESULT
+        for(int k = 0; k < ROIs.size(); k++){
+            rectangle(frame, ROIs[k], Scalar(0, 255, 0), 3, 8, 0);
+        }
+
+        // Bbox of the user
+        rectangle(frame, user.boundingBox, Scalar(255, 0 , 0), 3, 8, 0);
+
+        // "Write" the video
+        // video.write(frame);
+
         imshow("Video", frame);
-        if (waitKey(1) == 27)
-        {
+        if (waitKey(1) == 27){
+            video.release();
             return 0;
         }
-       
-    }
+    }   
     return 0;
 }
