@@ -16,10 +16,10 @@ Plane::Plane(PntCld::Ptr cloud_in, int16_t threshold, Eigen::Vector3f normal, in
     // Mandatory
     seg.setModelType (pcl::SACMODEL_PERPENDICULAR_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setMaxIterations (5000); // this is the key parameter to estimate the proper plane
-    seg.setDistanceThreshold (threshold);
+    seg.setMaxIterations (5000);            // this is the key parameter to estimate the proper plane
+    seg.setDistanceThreshold (threshold);   // points within +- threshold are inliers
     seg.setAxis(normal);
-    seg.setEpsAngle(M_PI/180*angle); // plane can be within +- 20 deg X-Z
+    seg.setEpsAngle(M_PI/180*angle);        // plane can be within +- 20deg in the other two axis
 
     // Create the filtering object
     pcl::ExtractIndices<pcl::PointXYZ> extract;
