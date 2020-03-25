@@ -10,15 +10,28 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
 
-
-
 // --------------------------------------------
-// ---------Point Cloud Transformation---------
+// -------------Class declarations-------------
 // --------------------------------------------
-PntCld::Ptr transform(PntCld::Ptr cloud_in, pcl::ModelCoefficients::Ptr coefficients);
+class Plane{
+    public:
+        PntCld::Ptr plane_cloud;
+        pcl::ModelCoefficients::Ptr coefficients;
+        Eigen::Matrix4f transf_mtx;
+
+        Plane(PntCld::Ptr cloud_in, int16_t threshold,
+                Eigen::Vector3f normal, int16_t angle);
+        // locate(Persona)
+        // {
+        //     prendi centroide persona
+        //     trasforma con this.transf_mtx
+        //     assegna a persona.punto3d
+        // }
+    private:
+        void setTransfMtx();
+};
 
 
 #endif
