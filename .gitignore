@@ -2,3 +2,4 @@ build
 cmake
 bin
 .vscode
+_downsampled.ply

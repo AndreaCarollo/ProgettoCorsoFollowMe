@@ -12,6 +12,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/extract_indices.h>
 
+
 // --------------------------------------------
 // -------------Class declarations-------------
 // --------------------------------------------
@@ -19,17 +20,20 @@ class Plane{
     public:
         PntCld::Ptr plane_cloud;
         pcl::ModelCoefficients::Ptr coefficients;
-        Eigen::Matrix4f transf_mtx;
-
-        Plane(PntCld::Ptr cloud_in, int16_t threshold,
-                Eigen::Vector3f normal, int16_t angle);
+        Eigen::Affine3f transf_mtx;
+        Plane(Eigen::Vector3f* normal, float threshold, ushort angle);
         // locate(Persona)
         // {
         //     prendi centroide persona
         //     trasforma con this.transf_mtx
         //     assegna a persona.punto3d
         // }
+        void update(PntCld::Ptr cloud_in);  // put it into a loop of the main
     private:
+        int tries;
+        Eigen::Vector3f* normal;
+        float threshold;
+        ushort angle;
         void setTransfMtx();
 };
 

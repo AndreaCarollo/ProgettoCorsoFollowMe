@@ -20,28 +20,31 @@ int main (int argc, char** argv)
     pcl::PLYReader reader;
     pcl::PLYWriter writer;
     std::stringstream ss;
-    Eigen::Vector3f normal = Eigen::Vector3f(0.0, 1.0, 0.0);
-    int16_t threshold = 50, angle = 20;
+    Eigen::Vector3f normal = Eigen::Vector3f(0.0, 1.0, 0.0);    // normal to plane to be found, we can "help"
+                                                                // the search tilting in the expected direction
+    ushort angle = 20;      // [deg] points within +- threshold are inliers of plane
+    float threshold = 50;   // [mm] plane can deviate of +- angle in the other two axis
 
     // Fill in the cloud data
     reader.read (argv[1], *cloud_blob);
 
-    // Downsample the original cloud, requires a filtering object
-    float leaf[3];                      // with same scale of pcl
-    leaf[0] = 100; leaf[1] = 100; leaf[2] = 10;
+    // Downsample the original cloud, requires a filtering object with same scale of pcl
+    float leaf[3];
+    leaf[0] = 100; leaf[1] = 100; leaf[2] = 10;         // [mm]
     downsampling(cloud_blob, cloud_filtered, leaf);
 
     // Write the downsampled version to disk
-    ss << argv[1] << "_downsampled.ply";
+    ss << ".." << strtok(argv[1], ".ply") << "_downsampled.ply";
     writer.write<pcl::PointXYZ> (ss.str(), *cloud_filtered, false);
     
-    // Extract plane creating plane object
-    Plane plane(cloud_filtered, 50, normal, 20);
-
-    std::cerr << "PointCloud representing the planar component: " 
-                << plane.plane_cloud->width * plane.plane_cloud->height << " data points." << std::endl;
-
-    std::cerr << "Plane coefficients: " << endl
+    // Initialize plane object
+    cout << "Inserire threshold: "; cin >> threshold;
+    cout << "Inserire angle: "; cin >> angle;
+    Plane plane(&normal, threshold, angle);
+    
+    // Call the update method, to be put in a loop
+    plane.update(cloud_filtered);
+    std::cerr << endl << "Plane coefficients: " << endl
                 << plane.coefficients->values[0] << endl
                 << plane.coefficients->values[1] << endl
                 << plane.coefficients->values[2] << endl
@@ -50,9 +53,7 @@ int main (int argc, char** argv)
     // Save the inliers on disk
     writer.write<pcl::PointXYZ> ("../plane.ply", *plane.plane_cloud);
 
-    
-
-    // Apply transformation mtx to plane and pcl
+    // // Apply transformation mtx to plane and pcl
     pcl::transformPointCloud(*cloud_filtered, *cloud_tmp, plane.transf_mtx);
     cloud_filtered.swap (cloud_tmp);
     pcl::transformPointCloud(*plane.plane_cloud, *cloud_tmp, plane.transf_mtx);
@@ -61,6 +62,9 @@ int main (int argc, char** argv)
     // Visualize
     viewer = simpleVis(cloud_filtered);
     viewer->addPointCloud(plane.plane_cloud, color_handler);
+    viewer->addCoordinateSystem(1000, "RF_plane");
+    viewer->addCoordinateSystem(1000, plane.transf_mtx, "RF_cam");
+
 
     while (!viewer->wasStopped())
     {
