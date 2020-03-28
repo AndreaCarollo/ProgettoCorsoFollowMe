@@ -30,6 +30,7 @@ void Plane::setTransfMtx()
     transf_mtx (1,1) = -n2;
     transf_mtx (2,1) = -n3;
     transf_mtx (1,2) = n3/den;   
+    transf_mtx (1,3) = -coefficients->values[3];
 }
 
 void Plane::update(PntCld::Ptr cloud_in)
