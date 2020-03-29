@@ -13,11 +13,13 @@
 #include <stdlib.h>
 #include <iostream>
 
+
 // LIBRARY FUNCTIONS
 
 class person
 {
 private:
+
 public:
     /* data */
     cv::Rect boundingBox;
@@ -33,8 +35,8 @@ public:
     std::vector<int> ir_position3D;
 
     int proof;
-    std::vector<std::vector<int>> pos2D_story;
-    std::vector<std::vector<int>> pos3D_story;
+    std::vector< std::vector<int>> pos2D_story;
+    std::vector< std::vector<int>> pos3D_story;
 
     // for histogram
     cv::Mat *b_hist;
@@ -42,21 +44,25 @@ public:
     cv::Mat *r_hist;
 
     /* functions */
-    person(cv::Rect ROI);
+    person();
     void update(cv::Rect new_ROI);
     void update_story();
 
-    void get_ir_pos(); // trasforma 2d rgb in 2d ir
-    void get_proof();  // legge pcl
+    void get_ir_pos();     // trasforma 2d rgb in 2d ir
+    void get_proof();      // legge pcl
 
     void calc_hist(cv::Mat *ROI);
+
+    void remove_ROIs(cv::Point center, std::vector<cv::Rect> ROIs, double thr);  // tiene solo la persona nel centro
+    float eucledian_norm(cv::Point p1, cv::Point p2);
+
+    void QR_code(cv::Mat frame);  // detect and decode the QR code
+    void display_QR(cv::Mat frame, cv::Mat QR_bbox);  // display a bbox on QR code
+    void verify_user(cv::Mat QR_bbox, std::string data);  // check the correct user
 
     ~person();
 };
 
 void detection_on_frame(cv::Mat *frame, std::vector<cv::Rect> *peoples);
 
-
-// Compare two vector of rectangle, check if the rect_up (first element) is contained into the second vector
-// Return a vector of non overlapped rectangles
-std::vector< cv::Rect > compare_rect(std::vector< cv::Rect > rect_up, std::vector< cv::Rect > rect_full);
+float eucledian_norm(cv::Point p1, cv::Point p2);

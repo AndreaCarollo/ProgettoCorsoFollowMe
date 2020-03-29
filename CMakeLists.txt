@@ -19,15 +19,16 @@ link_directories( ${PCL_LIBRARY_DIRS} )
 add_definitions(  ${PCL_DEFINITIONS} )
 
 ## select executable
-add_executable(People peopledect.cpp)
+# add_executable(People peopledect.cpp)
+add_executable(People people_state_machine.cpp)
 
 ## add library
-add_library(MyLib MyLib.cpp)
+add_library(Person person.cpp)
 # add_library(AcqLib ./AcquisitionLib/acq_lib.cpp)
 
 ## add target libraries
 target_link_libraries(People ${OpenCV_LIBS})
 target_link_libraries(People ${realsense2_LIBRARY})
 # target_link_libraries(People ${PCL_LIBRARIES} )
-target_link_libraries(People MyLib)
+target_link_libraries(People Person)
 # target_link_libraries(People AcqLib)
