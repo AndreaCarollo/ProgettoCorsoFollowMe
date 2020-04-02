@@ -32,12 +32,13 @@ int main (int argc, char** argv)
     cv::rectangle(cvFrame,cv::Point(x_cv-5,y_cv-5),cv::Point(x_cv+5,y_cv+5),cv::Scalar(0,0,255),5);
 
 
-    auto start_all = std::chrono::high_resolution_clock::now();
+    
 
 
     // ----------------- Plane Identification --------------- //
 
-    PntCld::Ptr cloud_blob (new PntCld), refCld (new PntCld);
+    PntCld::Ptr cloud_blob (new PntCld);
+    pcl::PointXYZ refPnt;
     PntCld::Ptr cloud_filtered (new PntCld), cloud_tmp (new PntCld);
     Visualizer::Ptr viewer;
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(cloud_filtered, 0, 255, 0);
@@ -53,12 +54,18 @@ int main (int argc, char** argv)
     reader.read ("../test.ply", *cloud_blob);
 
     // Downsample the original cloud, requires a filtering object with same scale of pcl
+    auto start_ds = std::chrono::high_resolution_clock::now();
+
     float leaf[3];
-    leaf[0] = 200; leaf[1] = 200; leaf[2] = 10;         // [mm]
+    leaf[0] = 50; leaf[1] = 50; leaf[2] = 10;         // [mm]
     downsampling(cloud_blob, cloud_filtered, leaf);
 
+    auto stop_ds = std::chrono::high_resolution_clock::now();
+
     // Write the downsampled version to disk
-    writer.write<pcl::PointXYZ> ("../test_downsampled.ply", *cloud_filtered, false);
+    // writer.write<pcl::PointXYZ> ("../test_downsampled.ply", *cloud_filtered, false);
+
+    auto start_plane = std::chrono::high_resolution_clock::now();
     
     // Initialize plane object
     Plane plane(&normal, threshold, angle);
@@ -66,16 +73,14 @@ int main (int argc, char** argv)
     // Call the update method, to be put in a loop
     plane.update(cloud_filtered);
 
+    auto stop_plane = std::chrono::high_resolution_clock::now();
+
     // Save the inliers on disk
     // writer.write<pcl::PointXYZ> ("../plane.ply", *plane.plane_cloud);
 
     // Create a point cloud with only the reference point:
     // to this cloud we can apply the transformation
-    refCld->width = 1;
-    refCld->height = 1;
-    refCld->points.resize(1);
-    refCld->is_dense = false;
-    refCld->points[0] = cloud_blob->points[(y_cv-1)*cvFrame.cols+x_cv];
+    refPnt = cloud_blob->points[(y_cv-1)*cvFrame.cols+x_cv];
 
     // Apply transformation mtx to plane and pcl
     pcl::transformPointCloud(*cloud_filtered, *cloud_tmp, plane.transf_mtx);
@@ -83,15 +88,12 @@ int main (int argc, char** argv)
     pcl::transformPointCloud(*plane.plane_cloud, *cloud_tmp, plane.transf_mtx);
     plane.plane_cloud.swap (cloud_tmp);
 
-    // Apply the transformation also to the cloud point with the terget point only
-    pcl::transformPointCloud(*refCld, *cloud_tmp, plane.transf_mtx);
-    refCld.swap (cloud_tmp);
+    auto start_pt = std::chrono::high_resolution_clock::now();
 
-    // Print the target point coordinate in the transformed frame
-    std::cerr << endl << "Target point: " << endl
-              << "x = " << refCld->points[0].x << endl
-              << "y = " << refCld->points[0].y << endl
-              << "z = " << refCld->points[0].z << endl;
+    // Apply the transformation also to the cloud point with the terget point only
+    refPnt = pcl::transformPoint(refPnt, plane.transf_mtx);
+
+    auto stop_pt = std::chrono::high_resolution_clock::now();
 
     // If we pass to the progam also an argument, we can test if there are any 
     // obstacle between the robot and the camera 
@@ -115,22 +117,24 @@ int main (int argc, char** argv)
     }
 
     // All the point clouds are added to the visualizer
+    
     viewer = simpleVis(cloud_filtered);
     viewer->addPointCloud(plane.plane_cloud, color_handler);
     viewer->addCoordinateSystem(1000, "RF_plane");
     viewer->addCoordinateSystem(1000, plane.transf_mtx, "RF_cam");
     // The cube has the marker meaning
-    viewer->addCube(refCld->points[0].x-30,refCld->points[0].x+30,
-                    refCld->points[0].y-30,refCld->points[0].y+30,
-                    refCld->points[0].z-30,refCld->points[0].z+30,
+    viewer->addCube(refPnt.x-30,refPnt.x+30,
+                    refPnt.y-30,refPnt.y+30,
+                    refPnt.z-30,refPnt.z+30,
                     1.0,0.0,0.0);
+    
 
 
     
     // ----------------Control Part -------------------------- //
 
     // Start chrono time
-    auto start = std::chrono::high_resolution_clock::now();
+    auto start_gi = std::chrono::high_resolution_clock::now();
 
     // viewer option for control
     int w_image = 640, h_image = 640;   // human graphic interface size
@@ -146,9 +150,9 @@ int main (int argc, char** argv)
 
     // Position of the target in the graphic interface
     float tmp;
-    tmp = (refCld->points[0].x)*scale;
+    tmp = (refPnt.x)*scale;
     int x_target = x_robot - tmp;
-    tmp = (refCld->points[0].z)*scale;
+    tmp = (refPnt.z)*scale;
     int y_target = y_robot - tmp;
 
     // Angulat coefficient of the rect that goes from robot to target
@@ -170,13 +174,15 @@ int main (int argc, char** argv)
     // cv::Mat for the graphic interface
     cv::Mat controlMat = cv::Mat(cv::Size(w_image,h_image), CV_8UC3, cv::Scalar(200,200,200));
 
-    // Obstacle finding
-    for (int i = 0; i<cloud_filtered->size(); i++){
-        if ( cloud_filtered->points[i].y > low_threshold && cloud_filtered->points[i].y < up_threshold ){
+    int n = 54;
 
-            tmp = (cloud_filtered->points[i].x)*scale;
+    // Obstacle finding
+    for (int i = 0; i<cloud_blob->size()/n; i++){
+        if ( cloud_blob->points[n*i].y > low_threshold && cloud_blob->points[n*i].y < up_threshold ){
+
+            tmp = (cloud_blob->points[n*i].x)*scale;
             int x_p = x_robot - tmp;
-            tmp = (cloud_filtered->points[i].z)*scale;
+            tmp = (cloud_blob->points[n*i].z)*scale;
             int y_p = y_robot - tmp;
 
             // put a circle in the interface where there are an obstacle
@@ -233,27 +239,44 @@ int main (int argc, char** argv)
                     arrowColor, 5);
 
     // Stop chrono time
-    auto stop = std::chrono::high_resolution_clock::now();
+    auto stop_gi = std::chrono::high_resolution_clock::now();
     
-    // Duration
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    cout << endl << "Duration time        : " << duration.count() << endl;
-    auto duration_complete = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start_all);
-    cout << endl << "All program duration : " << duration_complete.count() << endl;
+    std::cerr << endl << "Times: " << endl;
+
+    auto duration_ds = std::chrono::duration_cast<std::chrono::milliseconds>(stop_ds - start_ds);
+    cout << endl << "Downsampling         : " << duration_ds.count() << endl;
+
+    auto duration_plane = std::chrono::duration_cast<std::chrono::milliseconds>(stop_plane - start_plane);
+    cout << endl << "Plane finding        : " << duration_plane.count() << endl;
+
+    auto duration_pt = std::chrono::duration_cast<std::chrono::milliseconds>(stop_pt - start_pt);
+    cout << endl << "Point tansformation  : " << duration_pt.count() << endl;
+
+    auto duration_gi = std::chrono::duration_cast<std::chrono::milliseconds>(stop_gi - start_gi);
+    cout << endl << "Graphic interface    : " << duration_gi.count() << endl;
+
+    // Print the target point coordinate in the transformed frame
+    std::cerr << endl << "Target point: " << endl
+              << "x = " << refPnt.x << endl
+              << "y = " << refPnt.y << endl
+              << "z = " << refPnt.z << endl;
 
 
 
     // --------------- Rappresentation part ------------------ //
 
-        
+    cv::imshow("Image",cvFrame);
+    cv::imshow("Control",controlMat);
+    cv::waitKey(0);
+
+      
     while (!viewer->wasStopped())
     {
         viewer->spinOnce (100); // wait for some microseconds, makes the viewer interactive
-        cv::imshow("Image",cvFrame);
-        cv::imshow("Control",controlMat);
-        cv::waitKey(1);
+        
         boost::this_thread::sleep (boost::posix_time::microseconds (100000));
     }
+    
     
 
     return (0);

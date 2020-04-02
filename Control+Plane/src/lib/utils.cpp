@@ -28,23 +28,14 @@ Visualizer::Ptr customColourVis (PntCld::ConstPtr cloud)
 }
 
 void downsampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, float* leaf)
-{
-
-    // Start chrono time
-    auto start = std::chrono::high_resolution_clock::now();
+{  
 
     pcl::PCLPointCloud2::Ptr cloud2 (new pcl::PCLPointCloud2);
     pcl::toPCLPointCloud2(*cloud_in, *cloud2);
 
-    // Stop chrono time
-    auto stop = std::chrono::high_resolution_clock::now();
-    
-    // Duration
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    cout << endl << "Cloud conversion time : " << duration.count() << endl;
-
     // std::cerr << "PointCloud before filtering: " << cloud_in->width * cloud_in->height
     //             << " data points." << std::endl;
+
     pcl::PCLPointCloud2 cloud_tmp;
     pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
     sor.setInputCloud (cloud2);

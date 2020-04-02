@@ -6,7 +6,7 @@
 Plane::Plane(Eigen::Vector3f* normal, float threshold, ushort angle)
 {
     // Internal parameters
-    tries = 5000;
+    tries = 2000;
     this->normal = normal;
     this->threshold = threshold;
     this->angle = angle;
@@ -61,6 +61,7 @@ void Plane::update(PntCld::Ptr cloud_in)
     
     setTransfMtx();
 
+    
     // Extract the inliers/plane
     extract.setInputCloud (cloud_in);
     extract.setIndices (inliers);
@@ -74,4 +75,5 @@ void Plane::update(PntCld::Ptr cloud_in)
     extract.setNegative (true);
     extract.filter (*cloud_tmp);
     cloud_in.swap (cloud_tmp);
+    
 }
