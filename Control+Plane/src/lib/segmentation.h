@@ -18,17 +18,10 @@
 // --------------------------------------------
 class Plane{
     public:
-        PntCld::Ptr plane_cloud;
         pcl::ModelCoefficients::Ptr coefficients;
         Eigen::Affine3f transf_mtx;
         Plane(Eigen::Vector3f* normal, float threshold, ushort angle);
-        // locate(Persona)
-        // {
-        //     prendi centroide persona
-        //     trasforma con this.transf_mtx
-        //     assegna a persona.punto3d
-        // }
-        void update(PntCld::Ptr cloud_in);  // put it into a loop of the main
+        void update(PntCld::Ptr cloud_in);  // loopable
     private:
         int tries;
         Eigen::Vector3f* normal;

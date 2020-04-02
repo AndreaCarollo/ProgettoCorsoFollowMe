@@ -37,13 +37,11 @@ int main (int argc, char** argv)
 
     // ----------------- Plane Identification --------------- //
 
-    PntCld::Ptr cloud_blob (new PntCld);
     pcl::PointXYZ refPnt;
-    PntCld::Ptr cloud_filtered (new PntCld), cloud_tmp (new PntCld);
+    PntCld::Ptr cloud_blob (new PntCld), cloud_filtered (new PntCld), cloud_tmp (new PntCld);
     Visualizer::Ptr viewer;
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(cloud_filtered, 0, 255, 0);
     pcl::PLYReader reader;
-    pcl::PLYWriter writer;
     std::stringstream ss;
     Eigen::Vector3f normal = Eigen::Vector3f(0.0, 1.0, 0.0);    // normal to plane to be found, we can "help"
                                                                 // the search tilting in the expected direction
@@ -52,18 +50,19 @@ int main (int argc, char** argv)
 
     // Fill in the cloud data
     reader.read ("../test.ply", *cloud_blob);
+    // reader.read (argv[1], *cloud_blob);
 
     // Downsample the original cloud, requires a filtering object with same scale of pcl
     auto start_ds = std::chrono::high_resolution_clock::now();
 
-    float leaf[3];
-    leaf[0] = 50; leaf[1] = 50; leaf[2] = 10;         // [mm]
-    downsampling(cloud_blob, cloud_filtered, leaf);
+    int i = 0;
+    do{
+        cloud_filtered->points.push_back(cloud_blob->at(i));
+        i += 32;
+    }while( i < cloud_blob->size());
 
     auto stop_ds = std::chrono::high_resolution_clock::now();
 
-    // Write the downsampled version to disk
-    // writer.write<pcl::PointXYZ> ("../test_downsampled.ply", *cloud_filtered, false);
 
     auto start_plane = std::chrono::high_resolution_clock::now();
     
@@ -75,22 +74,16 @@ int main (int argc, char** argv)
 
     auto stop_plane = std::chrono::high_resolution_clock::now();
 
-    // Save the inliers on disk
-    // writer.write<pcl::PointXYZ> ("../plane.ply", *plane.plane_cloud);
-
-    // Create a point cloud with only the reference point:
-    // to this cloud we can apply the transformation
+    // Extract the target point
     refPnt = cloud_blob->points[(y_cv-1)*cvFrame.cols+x_cv];
 
     // Apply transformation mtx to plane and pcl
     pcl::transformPointCloud(*cloud_filtered, *cloud_tmp, plane.transf_mtx);
     cloud_filtered.swap (cloud_tmp);
-    pcl::transformPointCloud(*plane.plane_cloud, *cloud_tmp, plane.transf_mtx);
-    plane.plane_cloud.swap (cloud_tmp);
 
     auto start_pt = std::chrono::high_resolution_clock::now();
 
-    // Apply the transformation also to the cloud point with the terget point only
+    // Apply the transformation also to the target point
     refPnt = pcl::transformPoint(refPnt, plane.transf_mtx);
 
     auto stop_pt = std::chrono::high_resolution_clock::now();
@@ -98,7 +91,7 @@ int main (int argc, char** argv)
     // If we pass to the progam also an argument, we can test if there are any 
     // obstacle between the robot and the camera 
     if (argv[1] != NULL){
-        // We create a whall on the "trajectory" that simulate an obstacle
+        // We create a wall on the "trajectory" to simulate an obstacle
         float x_start = -100.0;
         float y_start = 500.0;
         pcl::PointXYZ Point;
@@ -119,7 +112,6 @@ int main (int argc, char** argv)
     // All the point clouds are added to the visualizer
     
     viewer = simpleVis(cloud_filtered);
-    viewer->addPointCloud(plane.plane_cloud, color_handler);
     viewer->addCoordinateSystem(1000, "RF_plane");
     viewer->addCoordinateSystem(1000, plane.transf_mtx, "RF_cam");
     // The cube has the marker meaning
