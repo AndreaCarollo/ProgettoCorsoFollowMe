@@ -10,7 +10,7 @@ find_package(realsense2 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR})
 # select executable
-add_executable(Test test.cpp)
+add_executable(Test marker.cpp)
 add_library(Person_LIB person.cpp)
 # add library
 # add target libraries
