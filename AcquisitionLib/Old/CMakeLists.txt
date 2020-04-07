@@ -16,7 +16,7 @@ include_directories( ${PCL_INCLUDE_DIRS} )
 link_directories( ${PCL_LIBRARY_DIRS} )
 add_definitions(  ${PCL_DEFINITIONS} )
 
-add_executable( acq_test main.cpp ./lib/rs_stream.cpp ./lib/utils.cpp )
+add_executable( acq_test main.cpp acq_lib.cpp )
 
 target_link_libraries( acq_test ${OpenCV_LIBS} )
 target_link_libraries( acq_test ${realsense2_LIBRARY})
