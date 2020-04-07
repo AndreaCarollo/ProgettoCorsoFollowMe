@@ -11,6 +11,7 @@ Plane::Plane(Eigen::Vector3f* normal, float threshold, ushort angle)
     this->threshold = threshold;
     this->angle = angle;
     coefficients = pcl::ModelCoefficients::Ptr (new pcl::ModelCoefficients());
+    plane_cloud = PntCld::Ptr (new PntCld);
 }
 
 void Plane::setTransfMtx()
@@ -34,6 +35,7 @@ void Plane::setTransfMtx()
 
 void Plane::update(PntCld::Ptr cloud_in)
 {
+    PntCld::Ptr cloud_tmp (new PntCld);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices());
 
     // Create and set the segmentation object
@@ -60,18 +62,18 @@ void Plane::update(PntCld::Ptr cloud_in)
     setTransfMtx();
 
     
-    // // Extract the inliers/plane
-    // extract.setInputCloud (cloud_in);
-    // extract.setIndices (inliers);
-    // extract.setNegative (false);
-    // extract.filter (*plane_cloud);
+    // Extract the inliers/plane
+    extract.setInputCloud (cloud_in);
+    extract.setIndices (inliers);
+    extract.setNegative (false);
+    extract.filter (*plane_cloud);
 
     // std::cerr << "PointCloud representing the planar component: " 
     //           << plane_cloud->width * plane_cloud->height << " data points." << std::endl;
     
-    // // Remove the plane from the input pcl
-    // extract.setNegative (true);
-    // extract.filter (*cloud_tmp);
-    // cloud_in.swap (cloud_tmp);
+    // Remove the plane from the input pcl
+    extract.setNegative (true);
+    extract.filter (*cloud_tmp);
+    cloud_in.swap (cloud_tmp);
     
 }
