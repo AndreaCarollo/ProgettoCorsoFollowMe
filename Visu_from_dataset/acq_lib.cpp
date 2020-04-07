@@ -139,6 +139,7 @@ void PCViewer(PntCld cloud, PntCldV viewer){
     viewer->addPointCloud<pcl::PointXYZ>(cloud, "sample cloud");
     viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
     viewer->addCoordinateSystem(0.001);
-    
+    // Show the viewer
+    viewer -> spinOnce();
 
 }

@@ -23,9 +23,6 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/console/parse.h>
 
-// for time measurement
-#include <chrono> 
-
 
 // Definition of a new type variable for the point cloud
 typedef pcl::PointCloud<pcl::PointXYZ>::Ptr PntCld;
