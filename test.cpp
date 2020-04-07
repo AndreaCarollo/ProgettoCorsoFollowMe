@@ -35,7 +35,7 @@ int main()
     int frame_height = cap.get(CAP_PROP_FRAME_HEIGHT);
 
     // VideoWriter object
-    VideoWriter video("out_video.avi",VideoWriter::fourcc('M','J','P','G'),10, Size(frame_width, frame_height));
+    //VideoWriter video("out_video.avi",VideoWriter::fourcc('M','J','P','G'),10, Size(frame_width, frame_height));
 
     Mat frame, frame_gray;
     vector<Rect> ROIs;
@@ -56,6 +56,16 @@ int main()
 
     // Initialization of the class
     person user;
+
+    // ArUco marker dictionary and paramters
+    Ptr<aruco::Dictionary> dict = aruco::getPredefinedDictionary(aruco::DICT_5X5_50);
+    Ptr<aruco::DetectorParameters> param = aruco::DetectorParameters::create();
+    // *** these parameters can be tuned ***
+
+    // Define the user ID marker (the one in the videos is 25)
+    user.userID = 25;
+    // Flag to check the correct marker
+    bool flag_marker = false;
 
     while(true)
     {
@@ -106,6 +116,9 @@ int main()
         // Find the QR code
         user.QR_code(frame);
 
+        // Find the ArUco marker
+        user.detect_aruco(frame, dict, param, flag_marker);
+
         // VIDEO RESULT
         for(int k = 0; k < ROIs.size(); k++){
             rectangle(frame, ROIs[k], Scalar(0, 255, 0), 3, 8, 0);
@@ -119,7 +132,7 @@ int main()
 
         imshow("Video", frame);
         if (waitKey(1) == 27){
-            video.release();
+            //video.release();
             return 0;
         }
     }   

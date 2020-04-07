@@ -56,8 +56,12 @@ int main()
         aruco::detectMarkers(frame_copy, dict, markerCorn, markerIDs, param);
 
         // Draw the results on the image
-        if(markerIDs.size() > 0)                    // at least 1 marker detected
+        if(markerIDs.size() > 0){                   // at least 1 marker detected
             aruco::drawDetectedMarkers(frame_copy, markerCorn, markerIDs);
+            for(int i = 0; i < markerIDs.size(); i++){
+                printf("ID --> %d\n", markerIDs[i]);
+            }
+        }
 
         // Write the frame in the output video
         //video.write(frame_copy);

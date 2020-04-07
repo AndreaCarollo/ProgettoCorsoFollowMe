@@ -8,6 +8,7 @@
 #include <opencv2/tracking/tracking.hpp>
 #include <opencv2/objdetect.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/aruco.hpp>    // for the ArUco Markers
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +24,7 @@ private:
 public:
     /* data */
     cv::Rect boundingBox;
+    int userID;            // depending on which element used from the ArUco dictionary
 
     cv::Point2i point2D;
     cv::Point3i point3D;
@@ -59,6 +61,9 @@ public:
     void QR_code(cv::Mat frame);  // detect and decode the QR code
     void display_QR(cv::Mat frame, cv::Mat QR_bbox);  // display a bbox on QR code
     void verify_user(cv::Mat QR_bbox, std::string data);  // check the correct user
+
+    void detect_aruco(cv::Mat frame, cv::Ptr<cv::aruco::Dictionary> dict, cv::Ptr<cv::aruco::DetectorParameters> param, bool flag);  // detect ArUco markers
+    bool check_marker(int ID, std::vector<cv::Point2f> corners);    // check the user's marker
 
     ~person();
 };
