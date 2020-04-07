@@ -51,13 +51,13 @@ void downsampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, float* leaf)
 }
 
 
-void down_sampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, int n){
-
-    for (int i; i<cloud_in->size(); i++){
-        if (i%n == 0){
-            cloud_out->points.push_back(cloud_in->points[i]);
-        }
-    }
+void down_sampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, int n)
+{
+    static int i = 0;
+    do{
+        cloud_out->points.push_back(cloud_in->at(i));
+        i +=  n;
+    }while( i < cloud_in->size());
 
 }
 
