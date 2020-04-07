@@ -22,7 +22,7 @@ int main()
 {
     // TO DO: convert into a realsense video streaming
     // VideoCapture cap(0);
-    VideoCapture cap("../../../Dataset/Our_Video/test4.mp4");
+    VideoCapture cap("../../../Dataset/Markers/vid1.mp4");
 
     if (!cap.isOpened())
     {
@@ -100,7 +100,7 @@ int main()
 
         // Remove ROIs in order to get only the user one
         if(ROIs.size() > 1){
-            user.remove_ROIs(center, ROIs, 25);
+            //user.remove_ROIs(center, ROIs, 25);
         }
 
         // Find the QR code
