@@ -21,7 +21,7 @@ class Plane{
         PntCld::Ptr plane_cloud;
         pcl::ModelCoefficients::Ptr coefficients;
         Eigen::Affine3f transf_mtx;
-        Plane(Eigen::Vector3f* normal, float threshold, ushort angle);
+        Plane(Eigen::Vector3f* normal, float threshold, ushort angle, uint tries);
         // locate(Persona)
         // {
         //     prendi centroide persona

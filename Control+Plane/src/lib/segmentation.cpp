@@ -3,10 +3,10 @@
 // --------------------------------------------
 // --------------Class functions---------------
 // --------------------------------------------
-Plane::Plane(Eigen::Vector3f* normal, float threshold, ushort angle)
+Plane::Plane(Eigen::Vector3f* normal, float threshold, ushort angle, uint tries = 2000)
 {
     // Internal parameters
-    tries = 2000;
+    this->tries = tries;
     this->normal = normal;
     this->threshold = threshold;
     this->angle = angle;

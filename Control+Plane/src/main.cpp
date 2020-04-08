@@ -1,6 +1,7 @@
 #include "./lib/followme.h"
 #include "./lib/utils.h"
 #include "./lib/segmentation.h"
+#include "./lib/configurator.h"
 
 
 using namespace std;
@@ -12,11 +13,35 @@ using namespace std;
 // --------------------------------------------
 int main (int argc, char** argv)
 {
+    // ------------------ Configuration file ----------------- //
+
+    // Create the configurator object and parse conf.ini file
+    ConfigReader *p = ConfigReader::getInstance();
+    p->parseFile("../config.ini");
+
+    float threshold;
+    p->getValue("PLANE_THRESHOLD", threshold);
+
+    ushort angle;
+    p->getValue("PLANE_ANGLE", (int&) angle);
+
+    uint ransac_iter;
+    p->getValue("RANSAC_MAX_ITER", (int&) ransac_iter);
+
+    ushort leaf;
+    p->getValue("LEAF", (int&) leaf);
+
+    Eigen::Vector3f normal (0.0, 0.0, 0.0);
+    p->getValue("NORMAL_X", normal);
+    p->getValue("NORMAL_Y", normal);
+    p->getValue("NORMAL_Z", normal);
+
+
 
     // ------------------ OpenCV Part ----------------------- //
 
     // The image is read (This image corresponds to the .ply file)
-    cv::Mat cvFrame = cv::imread("../test.png");
+    cv::Mat cvFrame = cv::imread("../../test.png");
 
     // Target point choosing
     float y_rel = 0.5, x_rel = 0.46;
@@ -29,7 +54,7 @@ int main (int argc, char** argv)
     cv::rectangle(cvFrame,cv::Point(x_cv-5,y_cv-5),cv::Point(x_cv+5,y_cv+5),cv::Scalar(0,0,255),5);
 
 
-    
+
 
 
     // ----------------- Plane Identification --------------- //
@@ -41,10 +66,6 @@ int main (int argc, char** argv)
     pcl::PLYReader reader;
     pcl::PLYWriter writer;
     std::stringstream ss;
-    Eigen::Vector3f normal = Eigen::Vector3f(0.0, 1.0, 0.0);    // normal to plane to be found, we can "help"
-                                                                // the search tilting in the expected direction
-    ushort angle = 20;      // [deg] points within +- threshold are inliers of plane
-    float threshold = 50;   // [mm] plane can deviate of +- angle in the other two axis
 
     // Fill in the cloud data
     reader.read ("../test.ply", *cloud_blob);
@@ -52,8 +73,7 @@ int main (int argc, char** argv)
     // Downsample the original cloud, requires a filtering object with same scale of pcl
     auto start_ds = std::chrono::high_resolution_clock::now();
 
-    int n = 8;     // n must be a divider than the width of the pointcloud (of the infrared image width = 848)
-    down_sampling(cloud_blob, cloud_filtered, n);
+    down_sampling(cloud_blob, cloud_filtered, leaf);
 
     auto stop_ds = std::chrono::high_resolution_clock::now();
 
@@ -63,7 +83,7 @@ int main (int argc, char** argv)
     auto start_plane = std::chrono::high_resolution_clock::now();
     
     // Initialize plane object
-    Plane plane(&normal, threshold, angle);
+    Plane plane(&normal, threshold, angle, ransac_iter);
     
     // Call the update method, to be put in a loop
     plane.update(cloud_filtered);
@@ -109,6 +129,8 @@ int main (int argc, char** argv)
 
 
     
+
+
     // ----------------Control Part -------------------------- //
 
     // Create the point in which we store the 3D position of the target
@@ -157,6 +179,8 @@ int main (int argc, char** argv)
               << "x = " << refPnt.x << endl
               << "y = " << refPnt.y << endl
               << "z = " << refPnt.z << endl;
+
+
 
 
 
