@@ -29,6 +29,9 @@ int main(int argc, char const *argv[]) try
     // The camera of the viewer is "initialized"
     viewer->initCameraParameters();
 
+    //Call the class Stream
+    std::string stream_name = "Realsense stream";
+    Stream stream(stream_name);
 
 
     while(true)
@@ -39,8 +42,8 @@ int main(int argc, char const *argv[]) try
         // Block program until frames arrive
         rs2::frameset frames = p.wait_for_frames();
 
-        //Call the class Stream
-        Stream stream(&frames);
+        // Update the stream object
+        stream.update(&frames);
 
         // Load the images from the camera and convert it in cv::Mat
         stream.RGB_acq();

@@ -4,7 +4,29 @@
 // --------------------------------------------
 // --------------Class functions---------------
 // --------------------------------------------
-Stream::Stream(rs2::frameset *frames)
+Stream::Stream(std::string stream_name)
+{
+    this->stream_name = stream_name;
+    this->depth_scale = 0.001;
+
+    this->cloud = PntCld::Ptr (new pcl::PointCloud<pcl::PointXYZ>);
+
+    int h, w;
+    rs2::pointcloud* pc = NULL;
+    rs2::points* points = NULL;
+
+    rs2::frame* color = NULL;
+    rs2::frame* depth = NULL;
+    rs2::frame* infrared = NULL;
+
+    this->color_frame = cv::Mat();
+    this->depth_frame = cv::Mat();
+    this->infrared_frame = cv::Mat();
+    this->tmp = cv::Mat();
+
+}
+
+void Stream::update(rs2::frameset *frames)
 {
     // Internal parameters
     this->frames = (*frames);
@@ -12,18 +34,16 @@ Stream::Stream(rs2::frameset *frames)
     this->color = frames->get_color_frame();
     this->depth = frames->get_depth_frame();
     this->color_profile = this->color.get_profile();
-    this->depth_profile = this->depth.get_profile();   
-
-    this->depth_scale = 0.001;
+    this->depth_profile = this->depth.get_profile();
 }
 
 void Stream::RGB_acq()
 {
-    int w = color.as<rs2::video_frame>().get_width();
-    int h = color.as<rs2::video_frame>().get_height();
+    w = color.as<rs2::video_frame>().get_width();
+    h = color.as<rs2::video_frame>().get_height();
     
     // Convert the rs2 frame in a OpenCV Mat
-    cv::Mat tmp( cv::Size(w, h), CV_8UC3, (void *) color.get_data(), cv::Mat::AUTO_STEP);
+    tmp = cv::Mat( cv::Size(w, h), CV_8UC3, (void *) color.get_data(), cv::Mat::AUTO_STEP);
 
     // Color conversion
     cv::cvtColor(tmp,this->color_frame,cv::COLOR_RGB2BGR);
@@ -32,22 +52,19 @@ void Stream::RGB_acq()
 void Stream::IR_acq()
 {
     // Acquisition of the infrared frame
-    rs2::video_frame infrared = frames.get_infrared_frame();
+    infrared = frames.get_infrared_frame();
 
-    int w = infrared.get_width();
-    int h = infrared.get_height();
+    w = infrared.as<rs2::video_frame>().get_width();
+    h = infrared.as<rs2::video_frame>().get_height();
     
     // Convert the rs2 frame in a OpenCV Mat
-    cv::Mat tmp( cv::Size(w, h), CV_8UC1, (void *) color.get_data(), cv::Mat::AUTO_STEP);
-    this->infrared_frame = tmp;
+    // tmp = cv::Mat( cv::Size(w, h), CV_8UC1, (void *) color.get_data(), cv::Mat::AUTO_STEP);
+    this->infrared_frame = cv::Mat( cv::Size(w, h), CV_8UC1, (void *) color.get_data(), cv::Mat::AUTO_STEP);
     
 }
 
 /* Transform an object point in a point cloud */
 PntCld::Ptr Stream::points_to_pcl(const rs2::points& points){
-
-    // Create a point cloud object
-    PntCld::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
     // Set all the paramethers of the point clouds
     auto sp = points.get_profile().as<rs2::video_stream_profile>();
@@ -69,10 +86,6 @@ PntCld::Ptr Stream::points_to_pcl(const rs2::points& points){
 
 void Stream::PC_acq(bool flag = false)
 {
-    // Initialization of some params
-    rs2::pointcloud pc;
-    rs2::points points;
-
     // Realsense point cloud generation (points object)
     pc.map_to(depth);
     points = pc.calculate(depth);
@@ -81,12 +94,12 @@ void Stream::PC_acq(bool flag = false)
     this->cloud = points_to_pcl(points);
 
     if (flag){
-        int w = depth.as<rs2::video_frame>().get_width();
-        int h = depth.as<rs2::video_frame>().get_height();
+        w = depth.as<rs2::video_frame>().get_width();
+        h = depth.as<rs2::video_frame>().get_height();
 
         // Convert the rs2 frame in a OpenCV Mat
-        cv::Mat tmp( cv::Size(w, h), CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
-        this->depth_frame = tmp;
+        // tmp = cv::Mat( cv::Size(w, h), CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
+        this->depth_frame = cv::Mat( cv::Size(w, h), CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
     }
     
 }
@@ -96,8 +109,8 @@ void Stream::project_RGB2DEPTH(cv::Point *input)
 
     this->rgb_point = (*input);
 
-    this->rgb_pixel[0] = (float) input->x/2;
-    this->rgb_pixel[1] = (float) input->y/2;
+    this->rgb_pixel[0] = (float) input->x;
+    this->rgb_pixel[1] = (float) input->y;
 
     auto depth_intrin = this->depth_profile.as<rs2::video_stream_profile>().get_intrinsics();
     auto color_intrin = this->color_profile.as<rs2::video_stream_profile>().get_intrinsics();

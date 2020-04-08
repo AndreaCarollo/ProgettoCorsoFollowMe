@@ -10,6 +10,9 @@
 // --------------------------------------------
 class Stream{
     public:
+
+        std::string stream_name;
+
         rs2::frameset frames;
 
         cv::Mat color_frame;
@@ -22,15 +25,21 @@ class Stream{
         cv::Point depth_point;
         pcl::PointXYZ refPnt;
 
-        Stream(rs2::frameset *frames);
+        Stream(std::string stream_name);
+        void update(rs2::frameset *frames);
         void RGB_acq();
         void IR_acq();
         void PC_acq(bool flag);
         void project_RGB2DEPTH(cv::Point *input);
 
     private:
+
+        cv::Mat tmp;
+        int h,w;
+
         rs2::frame depth;
         rs2::frame color;
+        rs2::frame infrared;
         rs2::stream_profile depth_profile;
         rs2::stream_profile color_profile;
 
@@ -38,6 +47,9 @@ class Stream{
 
         float rgb_pixel[2];
         float depth_pixel[2];
+
+        rs2::pointcloud pc;
+        rs2::points points;
 
         PntCld::Ptr points_to_pcl(const rs2::points& points);
 };
