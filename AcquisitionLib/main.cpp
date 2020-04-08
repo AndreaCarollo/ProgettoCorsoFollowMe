@@ -32,14 +32,20 @@ int main(int argc, char const *argv[]) try
 
     //Call the class Stream
     std::string stream_name = "Realsense stream";
-    frames = p.wait_for_frames();
+    frames = p.wait_for_frames();                   // The first frame is used to initialize the class stream only
     Stream stream(stream_name, &frames);
 
 
     while(cv::waitKey(1) != 27) // If the ESC button is pressed, the cycle is stopped and the program finishes
     {
         // Start chrono time
-        auto start = std::chrono::high_resolution_clock::now();       
+        auto start = std::chrono::high_resolution_clock::now();  
+
+        // Block program until frames arrive
+        frames = p.wait_for_frames();
+
+        // Update the stream object
+        stream.update(&frames);     
 
         // Load the images from the camera and convert it in cv::Mat
         stream.RGB_acq();
@@ -92,12 +98,6 @@ int main(int argc, char const *argv[]) try
         // Remove the point cloud from the viewer
         viewer -> removePointCloud("sample cloud");
         viewer -> removeShape("cube");
-        
-        // Block program until frames arrive
-        frames = p.wait_for_frames();
-
-        // Update the stream object
-        stream.update(&frames);
 
         // Start chrono time
         auto stop = std::chrono::high_resolution_clock::now();

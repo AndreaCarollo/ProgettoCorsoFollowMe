@@ -9,17 +9,8 @@ Stream::Stream(std::string stream_name, rs2::frameset *frames)
     this->stream_name = stream_name;
     this->depth_scale = 0.001;
 
-    this->cloud = PntCld::Ptr (new PntCld);
-    
-    // rs2::pointcloud* pc = NULL;      // ma è un puntatore?
-    // rs2::points* points = NULL;      // same
-
     update(frames);
     rs2::frame* infrared = NULL;
-
-    // Realsense point cloud generation (points object)
-    pc.map_to(depth);
-    points = pc.calculate(depth);
 
     this->color_frame = cv::Mat();
     this->depth_frame = cv::Mat();
@@ -31,6 +22,7 @@ Stream::Stream(std::string stream_name, rs2::frameset *frames)
     w_IR  = depth.as<rs2::video_frame>().get_width();
     h_IR  = depth.as<rs2::video_frame>().get_height();
 
+    cloud = PntCld::Ptr (new PntCld);
     cloud->width = w_IR;
     cloud->height = h_IR;
     cloud->is_dense = false;
@@ -63,22 +55,17 @@ void Stream::IR_acq()
     infrared = frames.get_infrared_frame();
     
     // Convert the rs2 frame in a OpenCV Mat
-    // tmp = cv::Mat( cv::Size(w, h), CV_8UC1, (void *) color.get_data(), cv::Mat::AUTO_STEP);
     this->infrared_frame = cv::Mat( cv::Size(w_IR, h_IR), CV_8UC1, (void *) color.get_data(), cv::Mat::AUTO_STEP);
     
 }
 
 /* Transform an object point in a point cloud */
-void Stream::points_to_pcl(const rs2::points *points){
+void Stream::points_to_pcl(const rs2::points points){
 
     // Set all the paramethers of the point clouds
-    auto sp = points->get_profile().as<rs2::video_stream_profile>();
-    // cloud->width = sp.width();
-    // cloud->height = sp.height();
-    // cloud->is_dense = false;
-    // cloud->points.resize(points->size());
-    // cout << sp.width() << endl;
-    auto ptr = points->get_vertices();
+    auto sp = points.get_profile().as<rs2::video_stream_profile>();
+
+    auto ptr = points.get_vertices();
     for (auto& p : cloud->points)
     {
         p.x = - ptr->x;
@@ -96,11 +83,10 @@ void Stream::PC_acq(bool flag = false)
     points = pc.calculate(depth);
 
     // Transform the points object of rs2 in a point cloud of pcl
-    points_to_pcl(&points);
+    points_to_pcl(points);
 
     if (flag){
         // Convert the rs2 frame in a OpenCV Mat
-        // tmp = cv::Mat( cv::Size(w, h), CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
         this->depth_frame = cv::Mat (cv::Size(w_IR, h_IR), CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
     }
     
