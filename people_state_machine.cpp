@@ -51,7 +51,6 @@ struct Target
 
         // TODO: add calculation of depth
         // depth = evaluatedepth();
-
     }
 };
 
@@ -159,6 +158,7 @@ int main()
         tracker = TrackerCSRT::create();
 
     // some initialization of parameters for state machine
+    bool flag_find = false;
     bool flag_lost = false;
     bool flag_init_track = true;
 
@@ -244,6 +244,7 @@ int main()
             {
                 // ---- Select Target ----  TODO: put in a function
                 /* code */
+                flag_find = false;
                 Point2d center;
                 center.x = frame.cols / 2;
                 center.y = frame.rows / 2;
@@ -256,10 +257,13 @@ int main()
                 int min = min_element(dist.begin(), dist.end()) - dist.begin();
                 if (dist[min] <= thr_euclidean)
                 {
+                    flag_find = true;
+                }
+
+                if (flag_find == true)
+                {
                     cout << "fuond target" << endl;
                     target.starting_BBOx = ROIs[min];
-                    w_SBBox = ROIs[min].width;
-                    h_SBBox = ROIs[min].height;
 
                     // initialize the tracker
                     trackers.clear();
@@ -270,7 +274,6 @@ int main()
                     target.target_update(frame, &trackers, 1);
                     count_hist = 0;
 
-                    // target_bbox = trackers.getObjects()[0];
                     // go to TRACK
                     currentState = TRACK;
                 }
@@ -290,7 +293,7 @@ int main()
 
             // Update tracker
             trackers.update(frame);
-            if (count_hist == refresh_hist & tracker_counter != max_frame_lost )
+            if (count_hist == refresh_hist & tracker_counter != max_frame_lost)
             {
                 target.target_update(frame, &trackers, 1);
                 count_hist = 0;
@@ -305,6 +308,8 @@ int main()
             // centre_bbox = (target_bbox.br() - target_bbox.tl()) / 2;
             w_TAR = target.boundingBox.width;
             h_TAR = target.boundingBox.height;
+            w_SBBox = target.starting_BBOx.width;
+            h_SBBox = target.starting_BBOx.height;
 
             // ---- Check dimension of tracked box ----
             if (tracker_counter == max_frame_lost)
@@ -398,11 +403,12 @@ int main()
             {
                 // -- do comparison hist
                 vector<double> compare_hist;
-                for(int i = 0; i < ROIs.size() ; i++){
-                    compare_hist.push_back( comparison_hist(frame, target.histogram, ROIs[i]) );
+                for (int i = 0; i < ROIs.size(); i++)
+                {
+                    compare_hist.push_back(comparison_hist(frame, target.histogram, ROIs[i]));
                 }
-                int maxElementIndex = std::max_element(compare_hist.begin(),compare_hist.end()) - compare_hist.begin();
-                int minElementIndex = std::min_element(compare_hist.begin(),compare_hist.end()) - compare_hist.begin();
+                int maxElementIndex = std::max_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
+                int minElementIndex = std::min_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
                 Rect2d New_ROI = ROIs[maxElementIndex];
 
                 // -- update tracker & target, go to TRACK
@@ -420,7 +426,6 @@ int main()
                 currentState = DETECT;
             }
 
-            
             break;
         default:
             currentState = DETECT;
