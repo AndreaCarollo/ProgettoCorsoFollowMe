@@ -130,16 +130,17 @@ void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld:
             // put a circle in the interface where there are an obstacle
             cv::circle(*output_matrix, cv::Point(x_p, y_p), 2, obstacleColor, 2);
 
-            // Distance from robot and possible-obstacle point
-            double dist = (x_p - x_robot)^2 + (y_p - y_robot)^2;
-
             // Distance from "trajectory" and possible-obstacle point
-            int d_rect = (float) ((y_p - y_robot) / m) - (x_p - x_robot);
+            int d_rect = ((y_p - y_robot) / m) - (x_p - x_robot);
 
             // If the obstacle is between max and min distance and it is close to the rect,
             // there is an obstacle (self-explained flag = true)
-            if ( (dist <= dist_max) && (dist >= dist_min) ){
-                if ( abs(d_rect) < r ) {
+            if ( abs(d_rect) < r ) {
+
+		// Distance from robot and possible-obstacle point
+            	double dist = (x_p - x_robot)^2 + (y_p - y_robot)^2;
+
+                if ( (dist <= dist_max) && (dist >= dist_min) ) {
                     // If there are an obsatacle the control arrow is red, if there isn't the control arrow is red
                     arrowColor = cv::Scalar(0,0,255);
                 }
