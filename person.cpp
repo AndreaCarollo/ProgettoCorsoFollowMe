@@ -11,7 +11,6 @@
 using namespace cv;
 using namespace std;
 
-
 person::person()
 {
     //boundingBox = ROI;
@@ -78,13 +77,13 @@ void detection_on_frame(cv::Mat *frame, vector<Rect> *peoples)
 //         Rect boundingBox;
 //         printf("No ROI satisfy the threshold\n");
 //     }
-    
+
 // }
 
 // Function for computing the distance between two points on a plane
 float eucledian_norm(cv::Point p1, cv::Point p2)
 {
-    return sqrt( (float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)) );
+    return sqrt((float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
 }
 
 // Find the target with the QR code
@@ -93,7 +92,7 @@ void person::QR_code(Mat frame)
     QRCodeDetector QRdetector;
     Mat QR_bbox;
     string data = QRdetector.detectAndDecode(frame, QR_bbox);
-    if(data.length() > 0)
+    if (data.length() > 0)
     {
         cout << "Decoded Data : " << data << endl;
         display_QR(frame, QR_bbox);
@@ -104,33 +103,71 @@ void person::QR_code(Mat frame)
 // Display QR code
 void person::display_QR(cv::Mat frame, cv::Mat QR_bbox)
 {
-    line(frame, Point2f(QR_bbox.at<float>(0,0), QR_bbox.at<float>(0,1)),
-                Point2f(QR_bbox.at<float>(0,2), QR_bbox.at<float>(0,3)),
-                Scalar(255, 0, 0), 3);
-    line(frame, Point2f(QR_bbox.at<float>(0,2), QR_bbox.at<float>(0,3)),
-                Point2f(QR_bbox.at<float>(0,4), QR_bbox.at<float>(0,5)),
-                Scalar(255, 0, 0), 3);
-    line(frame, Point2f(QR_bbox.at<float>(0,4), QR_bbox.at<float>(0,5)),
-                Point2f(QR_bbox.at<float>(0,6), QR_bbox.at<float>(0,7)),
-                Scalar(255, 0, 0), 3);
-    line(frame, Point2f(QR_bbox.at<float>(0,6), QR_bbox.at<float>(0,7)),
-                Point2f(QR_bbox.at<float>(0,0), QR_bbox.at<float>(0,1)),
-                Scalar(255, 0, 0), 3);
+    line(frame, Point2f(QR_bbox.at<float>(0, 0), QR_bbox.at<float>(0, 1)),
+         Point2f(QR_bbox.at<float>(0, 2), QR_bbox.at<float>(0, 3)),
+         Scalar(255, 0, 0), 3);
+    line(frame, Point2f(QR_bbox.at<float>(0, 2), QR_bbox.at<float>(0, 3)),
+         Point2f(QR_bbox.at<float>(0, 4), QR_bbox.at<float>(0, 5)),
+         Scalar(255, 0, 0), 3);
+    line(frame, Point2f(QR_bbox.at<float>(0, 4), QR_bbox.at<float>(0, 5)),
+         Point2f(QR_bbox.at<float>(0, 6), QR_bbox.at<float>(0, 7)),
+         Scalar(255, 0, 0), 3);
+    line(frame, Point2f(QR_bbox.at<float>(0, 6), QR_bbox.at<float>(0, 7)),
+         Point2f(QR_bbox.at<float>(0, 0), QR_bbox.at<float>(0, 1)),
+         Scalar(255, 0, 0), 3);
 }
 
 // Check if the user has the correct QR code
-void person::verify_user(cv::Mat QR_bbox, std::string data){
-    if (boundingBox.tl().x < QR_bbox.at<float>(0,0) &&
-        boundingBox.tl().y < QR_bbox.at<float>(0,1) &&
-        boundingBox.br().x > QR_bbox.at<float>(0,4) &&
-        boundingBox.br().y > QR_bbox.at<float>(0,5) &&
+void person::verify_user(cv::Mat QR_bbox, std::string data)
+{
+    if (boundingBox.tl().x < QR_bbox.at<float>(0, 0) &&
+        boundingBox.tl().y < QR_bbox.at<float>(0, 1) &&
+        boundingBox.br().x > QR_bbox.at<float>(0, 4) &&
+        boundingBox.br().y > QR_bbox.at<float>(0, 5) &&
         data == "TRUE")
         printf("The bounding box corresponds to the user!\n");
     else
-        Rect boundingBox;  // l'idea è di annullare il contenuto
-}                          
+        Rect boundingBox; // l'idea è di annullare il contenuto
+}
 
 // COMMENTI
 // Probabilmente si può migliorare l'if con la funzione contains() del boundingBox.
 // Forse bisogna usare una variabile globale (nella classe person) per identificare l'user
 // così quando si fa la detection di "ostacoli" si sa che uno di questi è proprio l'utente
+
+cv::MatND evaluate_hist(cv::Mat frame, cv:: Rect2d ROI)
+{
+    Point2d TL = ROI.tl();
+    Point2d BR = ROI.br();
+    int WBBOX = ROI.width;
+    int HBBOX = ROI.height;
+    Mat cropframe(frame, Rect(TL.x, TL.y, WBBOX, HBBOX));
+    cv::Mat hsv;
+    /// Convert to HSV
+    cv::cvtColor(frame, hsv, COLOR_BGR2HSV);
+    /// Using 50 bins for hue and 60 for saturation
+    int h_bins = 50;
+    int s_bins = 60;
+    int histSize[] = {h_bins, s_bins};
+    // hue varies from 0 to 179, saturation from 0 to 255
+    float h_ranges[] = {0, 180};
+    float s_ranges[] = {0, 256};
+    const float *ranges[] = {h_ranges, s_ranges};
+
+    // Use the o-th and 1-st channels
+    int channels[] = {0, 1};
+    /// Histograms
+    cv::MatND hist_base;
+    /// Calculate the histograms for the HSV images
+    cv::calcHist(&hsv, 1, channels, Mat(), hist_base, 2, histSize, ranges, true, false);
+    cv::normalize(hist_base, hist_base, 0, 1, NORM_MINMAX, -1, Mat());
+    return hist_base;
+}
+
+double comparison_hist(cv::Mat frame, cv::MatND hist_1, cv::Rect ROI2)
+{
+    cv::MatND hist_2 = evaluate_hist(frame,ROI2);
+    int compare_method = 1;
+    double comparison = cv::compareHist(hist_1, hist_2, compare_method);
+    return comparison;
+}

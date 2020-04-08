@@ -66,3 +66,32 @@ public:
 void detection_on_frame(cv::Mat *frame, std::vector<cv::Rect> *peoples);
 
 float eucledian_norm(cv::Point p1, cv::Point p2);
+
+cv::MatND evaluate_hist(cv::Mat frame, cv:: Rect2d ROI);
+
+double comparison_hist(cv::Mat frame, cv::MatND hist_1, cv::Rect ROI2);
+
+// void target_update(Target *target, Mat frame, cv::MultiTracker trackers);
+
+
+// struct Target
+// {
+//     cv::Rect boundingBox;
+//     cv::Point2i point2D;
+//     cv::Point3i point3D;
+//     std::vector<int> position2D;
+//     std::vector<int> position3D;
+//     cv::Rect ir_boundingBox;
+//     cv::Point2i ir_point2D; // TO DO: da ricavare con la trasformazione vista stereo
+//     std::vector<int> ir_position2D;
+//     std::vector<int> ir_position3D;
+    
+
+//     int depth;
+//     std::vector<cv::Point2i> pos2D_story;
+//     //std::vector<std::vector<int>> pos2D_story;
+//     // std::vector<std::vector<int>> pos3D_story;
+
+//     // for histogram
+//     cv::MatND histogram;
+// };
