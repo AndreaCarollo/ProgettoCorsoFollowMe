@@ -24,8 +24,9 @@ class Stream{
         cv::Point rgb_point;
         cv::Point depth_point;
         pcl::PointXYZ refPnt;
-
-        Stream(std::string stream_name);
+        int w_RGB, h_RGB;
+        int w_IR, h_IR;
+        Stream(std::string stream_name, rs2::frameset *frames);
         void update(rs2::frameset *frames);
         void RGB_acq();
         void IR_acq();
@@ -35,7 +36,6 @@ class Stream{
     private:
 
         cv::Mat tmp;
-        int h,w;
 
         rs2::frame depth;
         rs2::frame color;
@@ -51,7 +51,7 @@ class Stream{
         rs2::pointcloud pc;
         rs2::points points;
 
-        PntCld::Ptr points_to_pcl(const rs2::points& points);
+        void points_to_pcl(const rs2::points *points);
 };
 
 

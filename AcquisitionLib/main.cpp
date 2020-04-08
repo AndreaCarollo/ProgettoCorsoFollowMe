@@ -9,9 +9,10 @@ int main(int argc, char const *argv[]) try
 
     // Create a configuration for configuring the pipeline with a non default profile
     rs2::config cfg;
+    rs2::frameset frames;
     
     // Add desired streams to configuration
-    // camSettings_rec(&cfg);                      // enable stream from the camera
+    // camSettings_rec(&cfg);                         // enable stream from the camera
     cfg.enable_device_from_file((char *) argv[1]);    // Enable stream from a recordered device (.bag file)
 
     // If we use a recordered device, we must be sure that the stream contains the frames that we will use
@@ -31,19 +32,14 @@ int main(int argc, char const *argv[]) try
 
     //Call the class Stream
     std::string stream_name = "Realsense stream";
-    Stream stream(stream_name);
+    frames = p.wait_for_frames();
+    Stream stream(stream_name, &frames);
 
 
-    while(true)
+    while(cv::waitKey(1) != 27) // If the ESC button is pressed, the cycle is stopped and the program finishes
     {
         // Start chrono time
-        auto start = std::chrono::high_resolution_clock::now();
-
-        // Block program until frames arrive
-        rs2::frameset frames = p.wait_for_frames();
-
-        // Update the stream object
-        stream.update(&frames);
+        auto start = std::chrono::high_resolution_clock::now();       
 
         // Load the images from the camera and convert it in cv::Mat
         stream.RGB_acq();
@@ -93,16 +89,15 @@ int main(int argc, char const *argv[]) try
         // Show the viewer
         viewer -> spinOnce();
 
-        // If the ESC button is pressed, the cycle is stopped and the program finishes
-        if (cv::waitKey(1) == 27)
-        {
-            p.stop();
-            break;
-        }
-
         // Remove the point cloud from the viewer
         viewer -> removePointCloud("sample cloud");
         viewer -> removeShape("cube");
+        
+        // Block program until frames arrive
+        frames = p.wait_for_frames();
+
+        // Update the stream object
+        stream.update(&frames);
 
         // Start chrono time
         auto stop = std::chrono::high_resolution_clock::now();
@@ -119,6 +114,7 @@ int main(int argc, char const *argv[]) try
     
     return EXIT_SUCCESS;
 }
+
 catch (const rs2::error &e)
 {
     std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
