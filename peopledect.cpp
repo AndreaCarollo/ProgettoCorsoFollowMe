@@ -5,7 +5,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 
-#include "./MyLib.hpp"
+#include "./person.hpp"
 
 #include <ctime>
 #include <iostream>

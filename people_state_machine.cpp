@@ -68,10 +68,13 @@ int main()
     VideoCapture cap("../../../Dataset/Our_Video/test3.mp4");
     // VideoCapture cap("../../../Dataset/Our_Video/QR_test3.mp4");
 
+    // ir camera
+    // VideoCapture cap("../../../Dataset/IR_renamed/test01_04b/%3d.png");
+
     // VideoCapture cap(selected_cap);
 
     namedWindow("Video", WINDOW_KEEPRATIO);
-    resizeWindow("Video", 960, 540);
+    // resizeWindow("Video", 960, 540);
     //Control open video
     if (!cap.isOpened())
     {
@@ -85,9 +88,9 @@ int main()
     Rect2d ROI;
 
     // ---- Detector initialization ---
-    String haar_fullbody = "../trained//haarcascade_fullbody.xml";
+    String haar_fullbody   = "../trained//haarcascade_fullbody.xml";
     String haar_pedestrian = "../trained/haarcascade_pedestrian.xml";
-    String haar_upbody = "../trained/haarcascade_upperbody.xml";
+    String haar_upbody     = "../trained/haarcascade_upperbody.xml";
 
     // Create classifiers
     CascadeClassifier fullbody_cascade;
@@ -103,8 +106,9 @@ int main()
     string classifierTypes[3] = {"PEDESTRIAN", "FULBODY", "UPPERBODY"};
     string classifierType = classifierTypes[0];
     int classifier_counter = 0;
-    int max_frame_try = 5;
+    int max_frame_try = 1;
 
+    // --------------------------------
     // ---- Tracker Initialization ----
 
     //TO DO: la selezione del tracker può esser messa in una funzione in lib
@@ -135,8 +139,16 @@ int main()
     // Initial State is DETECT, stay here until find someone to track.
     StateMachine currentState = DETECT;
 
+    // some initialization of parameters for state machine
     Rect target_bbox;
+    bool flag_lost = false;
     bool flag_init_track = true;
+
+    Point2d centre_bbox;
+    int h_ROI, w_ROI;
+    int h_TAR, w_TAR;
+    float th_ROI_min = 0.6;
+    float th_ROI_max = 1.3;
 
     while (true)
     {
@@ -144,6 +156,8 @@ int main()
         switch (currentState)
         {
         case DETECT:
+            // cout << "DETECT \n"
+            //      << endl;
             /* code */
             // cadscedes uses for tuning values
             // pedestrian_cascade.detectMultiScale(frame, ROIs, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
@@ -151,6 +165,7 @@ int main()
             // upbody_cascade.detectMultiScale(frame, ROIs, 1.5, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
 
             //TO DO: for the next big IF maybe to put inside a function in lib
+            // Detection on frame
             if (classifierType == classifierTypes[0])
             {
                 pedestrian_cascade.detectMultiScale(frame, ROIs, 1.4, 28, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
@@ -213,51 +228,76 @@ int main()
                 if (dist[min] < thr_euclidean)
                 {
                     target_bbox = ROIs[min];
-                    flag_init_track = true;
+                    w_ROI = ROIs[min].width;
+                    h_ROI = ROIs[min].height;
+
+                    // initialize the tracker
+                    trackers.clear();
+                    trackers.add(tracker, frame, target_bbox);
+                    trackers.update(frame);
+
+                    // target_bbox = trackers.getObjects()[0];
+                    // go to TRACK
                     currentState = TRACK;
                 }
                 else
                 {
+                    // keep DETECT
                     currentState = DETECT;
                 }
             }
             break;
         case TRACK:
-            /* code */
-            // bool flag_lost = false;
-            if (flag_init_track == true)
-            {
-                trackers.clear();
-                trackers.add(tracker, frame, target_bbox);
-                trackers.update(frame);
+            // cout << "TRACK \n" << endl;
 
-                target_bbox = trackers.getObjects()[0];
-                
-            }
-            else
-            {
-                trackers.update(frame);
-                target_bbox = trackers.getObjects()[0];
-            }
+            /* code */
+            // set to false the lost flag
+            flag_lost = false;
+
+            // Update tracker
+            trackers.update(frame);
+            target_bbox = trackers.getObjects()[0];
 
             // TO DO: check if lost target
             /* code */
-            currentState = TRACK;
-            flag_init_track = false;
-            // if (flag_lost == false)
-            // {
-            //     currentState = TRACK;
-            //     flag_init_track = false;
-            // }
-            // else
-            // {
-            //     currentState = DETECT;
-            //     flag_init_track = true;
-            // }
+            // flag_lost = person::islost();
+            // centre_bbox = (target_bbox.br() - target_bbox.tl()) / 2;
+            w_TAR = target_bbox.width;
+            h_TAR = target_bbox.height;
+
+            // if ( w_TAR < th_ROI_min * w_ROI or w_TAR > th_ROI_max * w_ROI or
+            //      h_TAR < th_ROI_min * h_ROI or h_TAR > th_ROI_max * h_ROI  )
+            if ( (w_TAR <= 0.5* w_ROI) * (w_TAR >= 1.5 * w_ROI) *
+                 (h_TAR <= 0.5* h_ROI) * (h_TAR >= 1.5 * h_ROI) )
+            {
+                flag_lost = true;
+            }
+
+            if (flag_lost == false)
+            {
+                currentState = TRACK;
+                // cout << "stay on TRACK" << endl;
+
+                // --> state machine: robot moving + avoid ostacles
+                // ...
+            }
+            else
+            {
+                // cout << "go to LOST_TRACK" << endl;
+                currentState = LOST_TRACK;
+            }
+
             break;
+
         case LOST_TRACK:
+            // cout << "LOST_TRACK \n" << endl;
             // TO DO: need to find back the target person on the frame
             /* code */
+            // use last working detector, and do detection
+            // compare new detection hist with previous target hist
+
+            // if fallisco il rematching -> go to DETECT
+            currentState = DETECT;
             break;
         default:
             currentState = DETECT;
@@ -275,7 +315,7 @@ int main()
             cv::rectangle(frame, target_bbox, Scalar(0, 0, 255), 1, 8, 0);
         }
         cv::imshow("Video", frame);
-        if (waitKey(1) == 27)
+        if (waitKey(1000) == 27)
         {
             return 0;
         }
