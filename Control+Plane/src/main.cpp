@@ -2,6 +2,7 @@
 #include "./lib/utils.h"
 #include "./lib/segmentation.h"
 #include "./lib/configurator.h"
+#include "./lib/rs_stream.h"
 
 
 using namespace std;
@@ -41,7 +42,7 @@ int main (int argc, char** argv)
     // ------------------ OpenCV Part ----------------------- //
 
     // The image is read (This image corresponds to the .ply file)
-    cv::Mat cvFrame = cv::imread("../../test.png");
+    cv::Mat cvFrame = cv::imread("../test.png");
 
     // Target point choosing
     float y_rel = 0.5, x_rel = 0.46;
@@ -61,7 +62,7 @@ int main (int argc, char** argv)
 
     PntCld::Ptr cloud_blob (new PntCld);
     PntCld::Ptr cloud_filtered (new PntCld), cloud_tmp (new PntCld);
-    Visualizer::Ptr viewer;
+    PntCldV::Ptr viewer(new PntCldV ("3D Viewer"));
     pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(cloud_filtered, 0, 255, 0);
     pcl::PLYReader reader;
     pcl::PLYWriter writer;
@@ -121,8 +122,8 @@ int main (int argc, char** argv)
     }
 
     // All the point clouds are added to the visualizer
-    
-    viewer = simpleVis(cloud_filtered);
+    viewer->initCameraParameters();
+    PCViewer(cloud_filtered, viewer);
     viewer->addPointCloud(plane.plane_cloud, color_handler);
     viewer->addCoordinateSystem(1000, "RF_plane");
     viewer->addCoordinateSystem(1000, plane.transf_mtx, "RF_cam");   

@@ -3,7 +3,7 @@
 #define UTILS_H
 
 #include "followme.h"
-#include <chrono>
+#include "./rs_stream.h"
 
 // Common used library
 #include <iostream>
@@ -25,8 +25,16 @@
 typedef pcl::visualization::PCLVisualizer Visualizer;
 
 // --------------------------------------------
-// -------------3D Viewer Creators-------------
+// ----------------- Functions ----------------
 // --------------------------------------------
+
+/* Set the camera settings */
+void camSettings(rs2::config *cfg);
+
+void camSettings(rs2::config *cfg, int image_width, int image_heigth, int fps);
+
+void PCViewer(PntCld::Ptr cloud, PntCldV::Ptr viewer);
+
 Visualizer::Ptr simpleVis (PntCld::ConstPtr cloud);
 
 Visualizer::Ptr customColourVis (PntCld::ConstPtr cloud);
@@ -35,7 +43,11 @@ void downsampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, float* leaf);
 
 void down_sampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, int n);
 
-void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize );
+void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize, 
+                        float max_dist = 6000.0f, int obstacle_resolution = 54, float low_threshold = 10.0f, float up_threshold = 1500.0f );
+
+void interfaceBuilding (cv::Mat *output_matrix, cv::Point* targetPoint2D, Stream* stream, 
+                        float max_dist = 6000.0f, int obstacle_resolution = 54, float low_threshold = 10.0f, float up_threshold = 1500.0f );
 
 
 #endif
