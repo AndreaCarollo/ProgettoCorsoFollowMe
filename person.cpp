@@ -4,6 +4,7 @@
 #include <opencv2/tracking/tracking.hpp>
 #include <opencv2/objdetect.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/aruco.hpp>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,11 +78,28 @@ void detection_on_frame(cv::Mat *frame, vector<Rect> *peoples)
 //         Rect boundingBox;
 //         printf("No ROI satisfy the threshold\n");
 //     }
-
 // }
 
+// Take into consideration only the ROI near the center of the camera
+int remove_ROIs(cv::Mat frame, std::vector<cv::Rect> ROIs, double thr, bool *flag)
+{
+    Point2d center;
+    center.x = frame.cols / 2;
+    center.y = frame.rows / 2;
+    std::vector<double> dist;
+    for(int i = 0; i < ROIs.size(); i++){
+        dist.push_back(euclidean_norm(center, (ROIs[i].br() + ROIs[i].tl()) * 0.5));
+    }
+    int min = min_element(dist.begin(), dist.end()) - dist.begin();
+    if(dist[min] < thr)
+    {
+        *flag = true;
+    }
+    return min;
+}
+
 // Function for computing the distance between two points on a plane
-float eucledian_norm(cv::Point p1, cv::Point p2)
+float euclidean_norm(cv::Point p1, cv::Point p2)
 {
     return sqrt((float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)));
 }
@@ -170,4 +188,44 @@ double comparison_hist(cv::Mat frame, cv::MatND hist_1, cv::Rect ROI2)
     int compare_method = 1;
     double comparison = cv::compareHist(hist_1, hist_2, compare_method);
     return comparison;
+}
+
+void detect_aruco(Mat frame, Ptr<aruco::Dictionary> dict, Ptr<aruco::DetectorParameters> param, Rect ROI, bool *flag)
+{
+    *flag = false;
+    // Marker detection
+    vector<int> markerIDs;                      // IDs of markers
+    vector< vector<Point2f> > markerCorn;       // contains the corners of the mrkers
+    aruco::detectMarkers(frame, dict, markerCorn, markerIDs, param);
+    // at least 1 marker detected --> draw the markers
+    if(markerIDs.size() > 0)
+    {
+        aruco::drawDetectedMarkers(frame, markerCorn, markerIDs);
+        // check the correct marker
+        for(int i = 0; i < markerIDs.size(); i++){
+            bool flagId = check_marker(ROI, markerIDs[i], markerCorn[i]);            
+            if(flagId == true)
+            {
+                *flag = true;
+                break;
+            }
+        }
+    }              
+}
+
+bool check_marker(Rect ROI, int ID, std::vector<cv::Point2f> corners)
+{
+    // check if the bbox contains the marker
+    if( ROI.contains(corners[0]) ||
+        ROI.contains(corners[1]) ||
+        ROI.contains(corners[2]) ||
+        ROI.contains(corners[3])   )
+    {
+        // if it contains the marker, then verify the ID's user (for this marker is 25)
+        if(ID == 25)
+            return true;
+        else
+            return false;
+    }
+    return false;
 }

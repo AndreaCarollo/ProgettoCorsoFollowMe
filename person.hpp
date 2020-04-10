@@ -8,6 +8,7 @@
 #include <opencv2/tracking/tracking.hpp>
 #include <opencv2/objdetect.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/aruco.hpp>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,8 +54,8 @@ public:
 
     void calc_hist(cv::Mat *ROI);
 
-    void remove_ROIs(cv::Point center, std::vector<cv::Rect> ROIs, double thr);  // tiene solo la persona nel centro
-    float eucledian_norm(cv::Point p1, cv::Point p2);
+    int remove_ROIs(cv::Mat frame, std::vector<cv::Rect> ROIs, double thr, bool flag);  // tiene solo la persona nel centro
+    float euclidean_norm(cv::Point p1, cv::Point p2);
 
     void QR_code(cv::Mat frame);  // detect and decode the QR code
     void display_QR(cv::Mat frame, cv::Mat QR_bbox);  // display a bbox on QR code
@@ -65,11 +66,16 @@ public:
 
 void detection_on_frame(cv::Mat *frame, std::vector<cv::Rect> *peoples);
 
-float eucledian_norm(cv::Point p1, cv::Point p2);
+float euclidean_norm(cv::Point p1, cv::Point p2);
+
+int remove_ROIs(cv::Mat frame, std::vector<cv::Rect> ROIs, double thr, bool *flag);
 
 cv::MatND evaluate_hist(cv::Mat frame, cv:: Rect2d ROI);
 
 double comparison_hist(cv::Mat frame, cv::MatND hist_1, cv::Rect ROI2);
+
+void detect_aruco(cv::Mat frame, cv::Ptr<cv::aruco::Dictionary> dict, cv::Ptr<cv::aruco::DetectorParameters> param, cv::Rect ROI, bool *flag);
+bool check_marker(cv::Rect ROI, int ID, std::vector<cv::Point2f> corners);
 
 // void target_update(Target *target, Mat frame, cv::MultiTracker trackers);
 

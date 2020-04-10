@@ -87,7 +87,7 @@ int main()
 
     /* from video */
     // VideoCapture cap(0);
-    VideoCapture cap("../../../Dataset/Our_Video/test3_1.mp4");
+    VideoCapture cap("../../../Dataset/Markers/vid2.mp4");
     // VideoCapture cap("../../../Dataset/Our_Video/QR_test3.mp4");
 
     /* from ir camera */
@@ -132,6 +132,16 @@ int main()
     int classifier_counter = 0;
     int max_frame_try = 5;
 
+    // ArUco marker dictionary and paramters
+    Ptr<aruco::Dictionary> dict = aruco::getPredefinedDictionary(aruco::DICT_5X5_50);
+    Ptr<aruco::DetectorParameters> param = aruco::DetectorParameters::create();
+    // *** these parameters can be tuned ***
+
+    // Define the user ID marker (the one in the videos is 25)
+    int user_ID = 25;
+    // Flag to check the correct marker
+    bool flag_marker = false;
+
     // ---- Tracker Initialization ---- TO DO: can be put in a function
 
     string trackerTypes[8] = {"BOOSTING", "MIL", "KCF", "TLD",
@@ -158,7 +168,7 @@ int main()
         tracker = TrackerCSRT::create();
 
     // some initialization of parameters for state machine
-    bool flag_find = false;
+    bool *flag_find = new bool;
     bool flag_lost = false;
     bool flag_init_track = true;
 
@@ -242,25 +252,16 @@ int main()
             }
             else
             {
-                // ---- Select Target ----  TODO: put in a function
+                // ---- Select Target ----  
                 /* code */
-                flag_find = false;
-                Point2d center;
-                center.x = frame.cols / 2;
-                center.y = frame.rows / 2;
+                *flag_find = false;
                 int thr_euclidean = 50;
-                std::vector<double> dist;
-                for (int i = 0; i < ROIs.size(); i++)
-                {
-                    dist.push_back(eucledian_norm(center, (ROIs[i].br() + ROIs[i].tl()) * 0.5));
-                }
-                int min = min_element(dist.begin(), dist.end()) - dist.begin();
-                if (dist[min] <= thr_euclidean)
-                {
-                    flag_find = true;
-                }
+                int min = remove_ROIs(frame, ROIs, thr_euclidean, flag_find);
 
-                if (flag_find == true)
+                // Check if it is the user through ArUco marker
+                detect_aruco(frame, dict, param, ROIs[min], flag_find);
+
+                if (*flag_find == true)
                 {
                     cout << "fuond target" << endl;
                     target.starting_BBOx = ROIs[min];
