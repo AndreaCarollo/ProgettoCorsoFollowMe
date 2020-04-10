@@ -139,8 +139,6 @@ int main()
 
     // Define the user ID marker (the one in the videos is 25)
     int user_ID = 25;
-    // Flag to check the correct marker
-    bool flag_marker = false;
 
     // ---- Tracker Initialization ---- TO DO: can be put in a function
 
@@ -169,6 +167,7 @@ int main()
 
     // some initialization of parameters for state machine
     bool *flag_find = new bool;
+    bool *flag_mark = new bool;
     bool flag_lost = false;
     bool flag_init_track = true;
 
@@ -259,9 +258,9 @@ int main()
                 int min = remove_ROIs(frame, ROIs, thr_euclidean, flag_find);
 
                 // Check if it is the user through ArUco marker
-                detect_aruco(frame, dict, param, ROIs[min], flag_find);
+                detect_aruco(frame, dict, param, ROIs[min], flag_mark);
 
-                if (*flag_find == true)
+                if (*flag_find == true && *flag_mark == true)
                 {
                     cout << "fuond target" << endl;
                     target.starting_BBOx = ROIs[min];
@@ -294,7 +293,7 @@ int main()
 
             // Update tracker
             trackers.update(frame);
-            if (count_hist == refresh_hist & tracker_counter != max_frame_lost)
+            if (count_hist == refresh_hist && tracker_counter != max_frame_lost)
             {
                 target.target_update(frame, &trackers, 1);
                 count_hist = 0;
