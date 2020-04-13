@@ -23,15 +23,11 @@ class Plane{
         PntCld::Ptr plane_cloud;
         PntCld::Ptr easy_cloud;     // containing the cloud without the plane
 
+        pcl::PointIndices::Ptr inliers;
+        pcl::SACSegmentation<pcl::PointXYZ> seg;
         pcl::ModelCoefficients::Ptr coefficients;
         Eigen::Affine3f transf_mtx;
         Plane(ConfigReader *p);
-        // locate(Persona)
-        // {
-        //     prendi centroide persona
-        //     trasforma con this.transf_mtx
-        //     assegna a persona.punto3d
-        // }
         void update(PntCld::Ptr cloud_in);  // put it into a loop of the main
     private:
         int tries;
