@@ -20,23 +20,10 @@ int main (int argc, char** argv)
     ConfigReader *p = ConfigReader::getInstance();
     p->parseFile("../config.ini");
 
-    float threshold;
-    p->getValue("PLANE_THRESHOLD", threshold);
+    // ushort leaf;
+    // p->getValue("LEAF", (int&) leaf);
 
-    ushort angle;
-    p->getValue("PLANE_ANGLE", (int&) angle);
-
-    uint ransac_iter;
-    p->getValue("RANSAC_MAX_ITER", (int&) ransac_iter);
-
-    ushort leaf;
-    p->getValue("LEAF", (int&) leaf);
-
-    Eigen::Vector3f normal (0.0, 0.0, 0.0);
-    p->getValue("NORMAL_X", normal);
-    p->getValue("NORMAL_Y", normal);
-    p->getValue("NORMAL_Z", normal);
-
+    
 
 
     // ------------------ OpenCV Part ----------------------- //
@@ -61,9 +48,9 @@ int main (int argc, char** argv)
     // ----------------- Plane Identification --------------- //
 
     PntCld::Ptr cloud_blob (new PntCld);
-    PntCld::Ptr cloud_filtered (new PntCld), cloud_tmp (new PntCld);
+    PntCld::Ptr cloud_tmp (new PntCld);
     PntCldV::Ptr viewer(new PntCldV ("3D Viewer"));
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(cloud_filtered, 0, 255, 0);
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(cloud_blob, 0, 255, 0);
     pcl::PLYReader reader;
     pcl::PLYWriter writer;
     std::stringstream ss;
@@ -74,59 +61,41 @@ int main (int argc, char** argv)
     // Downsample the original cloud, requires a filtering object with same scale of pcl
     auto start_ds = std::chrono::high_resolution_clock::now();
 
-    down_sampling(cloud_blob, cloud_filtered, leaf);
+    // down_sampling(cloud_blob, cloud_filtered, leaf);
 
     auto stop_ds = std::chrono::high_resolution_clock::now();
-
-    // Write the downsampled version to disk
-    // writer.write<pcl::PointXYZ> ("../test_downsampled.ply", *cloud_filtered, false);
 
     auto start_plane = std::chrono::high_resolution_clock::now();
     
     // Initialize plane object
-    Plane plane(&normal, threshold, angle, ransac_iter);
+    Plane plane(p);
     
     // Call the update method, to be put in a loop
-    plane.update(cloud_filtered);
+    plane.update(cloud_blob);
 
     auto stop_plane = std::chrono::high_resolution_clock::now();
 
-    // Save the inliers on disk
-    // writer.write<pcl::PointXYZ> ("../plane.ply", *plane.plane_cloud);
 
-    // Apply transformation mtx to plane and pcl
-    pcl::transformPointCloud(*cloud_filtered, *cloud_tmp, plane.transf_mtx);
-    cloud_filtered.swap (cloud_tmp);
-    pcl::transformPointCloud(*plane.plane_cloud, *cloud_tmp, plane.transf_mtx);
-    plane.plane_cloud.swap (cloud_tmp);
+    // // If we pass to the progam also an argument, we can test if there are any 
+    // // obstacle between the robot and the camera 
+    // if (argv[1] != NULL){
+    //     // We create a whall on the "trajectory" that simulate an obstacle
+    //     float x_start = -100.0;
+    //     float y_start = 500.0;
+    //     pcl::PointXYZ Point;
 
-    // If we pass to the progam also an argument, we can test if there are any 
-    // obstacle between the robot and the camera 
-    if (argv[1] != NULL){
-        // We create a whall on the "trajectory" that simulate an obstacle
-        float x_start = -100.0;
-        float y_start = 500.0;
-        pcl::PointXYZ Point;
+    //     cloud_filtered->points.resize(cloud_filtered->size()+10000);
 
-        cloud_filtered->points.resize(cloud_filtered->size()+10000);
+    //     for (int i = 0; i < 500; i++){
+    //         for (int j = 0; j < 20; j++){
+    //             Point.x = x_start+i;
+    //             Point.y = y_start+5*j;
+    //             Point.z = 1800.0;
 
-        for (int i = 0; i < 500; i++){
-            for (int j = 0; j < 20; j++){
-                Point.x = x_start+i;
-                Point.y = y_start+5*j;
-                Point.z = 1800.0;
-
-                cloud_filtered->points.push_back(Point);
-            }
-        }
-    }
-
-    // All the point clouds are added to the visualizer
-    viewer->initCameraParameters();
-    PCViewer(cloud_filtered, viewer);
-    viewer->addPointCloud(plane.plane_cloud, color_handler);
-    viewer->addCoordinateSystem(1000, "RF_plane");
-    viewer->addCoordinateSystem(1000, plane.transf_mtx, "RF_cam");   
+    //             cloud_filtered->points.push_back(Point);
+    //         }
+    //     }
+    // }
 
 
     
@@ -187,6 +156,18 @@ int main (int argc, char** argv)
 
     // --------------- Rappresentation part ------------------ //
 
+    // Apply transformation mtx to plane and pcl
+    pcl::transformPointCloud(*plane.easy_cloud, *cloud_tmp, plane.transf_mtx);
+    plane.easy_cloud.swap (cloud_tmp);
+    pcl::transformPointCloud(*plane.plane_cloud, *cloud_tmp, plane.transf_mtx);
+    plane.plane_cloud.swap (cloud_tmp);
+
+    // All the point clouds are added to the visualizer
+    viewer->initCameraParameters();
+    PCViewer(plane.easy_cloud, viewer);
+    viewer->addPointCloud(plane.plane_cloud, color_handler);
+    viewer->addCoordinateSystem(1000, "RF_plane");
+    viewer->addCoordinateSystem(1000, plane.transf_mtx, "RF_cam");
     
     while (!viewer->wasStopped())
     {

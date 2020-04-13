@@ -51,18 +51,6 @@ Visualizer::Ptr simpleVis (PntCld::ConstPtr cloud)
     return (viewer);
 }
 
-Visualizer::Ptr customColourVis (PntCld::ConstPtr cloud)
-{
-    Visualizer::Ptr viewer (new Visualizer ("3D Viewer"));
-    viewer->setBackgroundColor (0, 0, 0);
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(cloud, 0, 255, 0);
-    viewer->addPointCloud<pcl::PointXYZ> (cloud, single_color, "sample cloud");
-    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
-    viewer->addCoordinateSystem (1.0);
-    viewer->initCameraParameters ();
-    return (viewer);
-}
-
 void downsampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, float* leaf)
 {  
 
@@ -89,12 +77,11 @@ void downsampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, float* leaf)
 
 void down_sampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, int n)
 {
-    static int i = 0;
+    size_t i = 0.7*cloud_in->size();
     do{
         cloud_out->points.push_back(cloud_in->at(i));
         i +=  n;
     }while( i < cloud_in->size());
-
 }
 
 

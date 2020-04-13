@@ -3,15 +3,19 @@
 // --------------------------------------------
 // --------------Class functions---------------
 // --------------------------------------------
-Plane::Plane(Eigen::Vector3f* normal, float threshold, ushort angle, uint tries = 2000)
+Plane::Plane(ConfigReader *p)
 {
-    // Internal parameters
-    this->tries = tries;
-    this->normal = normal;
-    this->threshold = threshold;
-    this->angle = angle;
+    // Internal parameters calling the configurator
+    p->getValue("RANSAC_MAX_ITER", tries);
+    p->getValue("PLANE_NORMAL", normal);
+    p->getValue("PLANE_THRESHOLD", threshold);
+    p->getValue("PLANE_ANGLE", (int&) angle);
+    p->getValue("LEAF", (int&) leaf);
+    p->getValue("LOOK_DOWN", look_down);
+
     coefficients = pcl::ModelCoefficients::Ptr (new pcl::ModelCoefficients());
     plane_cloud = PntCld::Ptr (new PntCld);
+    easy_cloud = PntCld::Ptr (new PntCld);
 }
 
 void Plane::setTransfMtx()
@@ -33,9 +37,19 @@ void Plane::setTransfMtx()
     transf_mtx (1,3) = -coefficients->values[3];
 }
 
+void Plane::downsample(PntCld::Ptr cloud_in)
+{
+    size_t i = look_down*cloud_in->size();
+    do{
+        easy_cloud->points.push_back(cloud_in->at(i));
+        i +=  leaf;
+    }while( i < cloud_in->size());
+}
+
 void Plane::update(PntCld::Ptr cloud_in)
 {
-    PntCld::Ptr cloud_tmp (new PntCld);
+    // PntCld::Ptr cloud_tmp (new PntCld);
+    downsample(cloud_in);   // generates easy_cloud
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices());
 
     // Create and set the segmentation object
@@ -45,35 +59,30 @@ void Plane::update(PntCld::Ptr cloud_in)
     // Mandatory
     seg.setModelType (pcl::SACMODEL_PERPENDICULAR_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setMaxIterations (tries);               // max iterations for plane search (internal parameter)
-    seg.setDistanceThreshold (threshold);       // points within +- threshold are inliers
-    seg.setAxis(*normal);
-    seg.setEpsAngle(M_PI/180*angle);            // plane can deviate of +- 20deg in the other two axis
+    seg.setMaxIterations (tries);
+    seg.setDistanceThreshold (threshold);
+    seg.setAxis(normal);
+    seg.setEpsAngle(M_PI/180*angle);
 
     // Create the filtering object
     pcl::ExtractIndices<pcl::PointXYZ> extract;
     
     // Run the segmentation
-    seg.setInputCloud (cloud_in);
+    seg.setInputCloud (easy_cloud);
     seg.segment (*inliers, *coefficients);
     if(inliers->indices.size() == 0)            // break the code if plane is not found
         return;
     
     setTransfMtx();
-
     
-    // Extract the inliers/plane
-    extract.setInputCloud (cloud_in);
+    // Extract the inliers (plane)
+    extract.setInputCloud (easy_cloud);
     extract.setIndices (inliers);
     extract.setNegative (false);
     extract.filter (*plane_cloud);
 
-    // std::cerr << "PointCloud representing the planar component: " 
-    //           << plane_cloud->width * plane_cloud->height << " data points." << std::endl;
-    
-    // Remove the plane from the input pcl
-    extract.setNegative (true);
-    extract.filter (*cloud_tmp);
-    cloud_in.swap (cloud_tmp);
-    
+    // // Remove the plane from the input pcl
+    // extract.setNegative (true);
+    // extract.filter (*cloud_tmp);
+    // cloud_in.swap(cloud_tmp);
 }

@@ -65,15 +65,17 @@ bool ConfigReader::getValue(std::string tag, std::string& value)
 bool ConfigReader::getValue(std::string tag, Eigen::Vector3f& value)
 {
     map<string, string>::iterator it;
+    
     it = m_ConfigSettingMap.find(tag);
+    ushort strBegin = 0, strEnd = 0;
     if(it != m_ConfigSettingMap.end())
     {
-        if (tag == "NORMAL_X")          // use instead tag.end() to compare only last letter
-            value[0] = atof((it->second).c_str());
-        else if (tag == "NORMAL_Y")
-            value[1] = atof((it->second).c_str());
-        else if (tag == "NORMAL_Z")
-            value[2] = atof((it->second).c_str());
+        for (ushort i=0; i<3; i++)
+        {
+            strEnd = it->second.find_first_of(",", strBegin);
+            value[i] = atof(trim(it->second.substr(strBegin, strEnd - strBegin)).c_str());
+            strBegin = strEnd+1;
+        }
         return true;
     }
     return false;
