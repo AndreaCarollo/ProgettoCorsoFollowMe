@@ -3,7 +3,8 @@
 #define UTILS_H
 
 #include "followme.h"
-#include "./rs_stream.h"
+#include "rs_stream.h"
+#include "configurator.h"
 
 // Common used library
 #include <iostream>
@@ -43,11 +44,9 @@ void downsampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, float* leaf);
 
 void down_sampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, int n);
 
-void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize, 
-                        float max_dist = 6000.0f, int obstacle_resolution = 54, float low_threshold = 10.0f, float up_threshold = 1500.0f );
+void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize, ConfigReader *p);
 
-void interfaceBuilding (cv::Mat *output_matrix, cv::Point* targetPoint2D, Stream* stream, 
-                        float max_dist = 6000.0f, int obstacle_resolution = 54, float low_threshold = 10.0f, float up_threshold = 1500.0f );
+void interfaceBuilding (cv::Mat *output_matrix, cv::Point* targetPoint2D, Stream* stream, ConfigReader *p);
 
 
 #endif

@@ -85,8 +85,7 @@ void down_sampling(PntCld::Ptr cloud_in, PntCld::Ptr cloud_out, int n)
 }
 
 
-void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize, 
-                        float max_dist, int obstacle_resolution, float low_threshold, float up_threshold ) { 
+void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize,  ConfigReader *p) { 
 
     // Interface option
 
@@ -97,11 +96,20 @@ void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld:
                                                             // obstacle_resolution -> How many point for the image lenght (obstacle density) (=54)
     double font_scale = 0.9f;                               // Font scale for text
 
-    cv::Scalar backgroundColor = cv::Scalar(0,0,0);         // color for the interface background
-    cv::Scalar obstacleColor   = cv::Scalar(255,255,255);   // color for the obstacle
-    cv::Scalar targetColor     = cv::Scalar(0,200,0);       // color for the target point
-    cv::Scalar robotColor      = cv::Scalar(0,255,255);     // color for the point rappresenting the robot position
-    cv::Scalar arrowColor      = cv::Scalar(255,0,0);       // color for an arrow that goes from robot to target
+    cv::Scalar backgroundColor, obstacleColor, targetColor, robotColor, arrowColor;
+    p->getValue("BG_COLOR", backgroundColor);
+    p->getValue("ARROW_COLOR", arrowColor);
+    p->getValue("OBSTACLE_COLOR", obstacleColor);
+    p->getValue("ROBOT_COLOR", robotColor);
+    p->getValue("TARGET_COLOR", targetColor);
+
+    float max_dist, low_threshold, up_threshold;
+    p->getValue("LOOK_AHEAD_DIST", max_dist);
+    p->getValue("OBST_MIN_THRESH", low_threshold);
+    p->getValue("OBST_MAX_THRESH", up_threshold);
+
+    ushort obstacle_resolution;
+    p->getValue("OBSTACLE_GRAIN", (int&) obstacle_resolution);
 
     float scale = interface_size.height / max_dist;         // distance scale from real [mm] to graphic interface
     // float low_threshold = 10, up_threshold = 1500;       // min and max obstacle heigth
@@ -206,8 +214,7 @@ void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld:
 }
 
 
-void interfaceBuilding (cv::Mat *output_matrix, cv::Point* targetPoint2D, Stream* stream, 
-                        float max_dist, int obstacle_resolution, float low_threshold, float up_threshold ) { 
+void interfaceBuilding (cv::Mat *output_matrix, cv::Point* targetPoint2D, Stream* stream, ConfigReader *p) { 
 
     // Interface option
 
@@ -218,11 +225,20 @@ void interfaceBuilding (cv::Mat *output_matrix, cv::Point* targetPoint2D, Stream
                                                             // obstacle_resolution -> How many point for the image lenght (obstacle density)
     double font_scale = 0.9f;                               // Font scale for text
 
-    cv::Scalar backgroundColor = cv::Scalar(0,0,0);         // color for the interface background
-    cv::Scalar obstacleColor   = cv::Scalar(255,255,255);   // color for the obstacle
-    cv::Scalar targetColor     = cv::Scalar(0,200,0);       // color for the target point
-    cv::Scalar robotColor      = cv::Scalar(0,255,255);     // color for the point rappresenting the robot position
-    cv::Scalar arrowColor      = cv::Scalar(255,0,0);       // color for an arrow that goes from robot to target
+    cv::Scalar backgroundColor, obstacleColor, targetColor, robotColor, arrowColor;
+    p->getValue("BG_COLOR", backgroundColor);
+    p->getValue("ARROW_COLOR", arrowColor);
+    p->getValue("OBSTACLE_COLOR", obstacleColor);
+    p->getValue("ROBOT_COLOR", robotColor);
+    p->getValue("TARGET_COLOR", targetColor);
+
+    float max_dist, low_threshold, up_threshold;
+    p->getValue("LOOK_AHEAD_DIST", max_dist);
+    p->getValue("OBST_MIN_THRESH", low_threshold);
+    p->getValue("OBST_MAX_THRESH", up_threshold);
+
+    ushort obstacle_resolution;
+    p->getValue("OBSTACLE_GRAIN", (int&) obstacle_resolution);
 
     float scale = interface_size.height / max_dist;         // distance scale from real [mm] to graphic interface
     // float low_threshold = 10, up_threshold = 1500;          // min and max obstacle heigth
@@ -314,7 +330,7 @@ void interfaceBuilding (cv::Mat *output_matrix, cv::Point* targetPoint2D, Stream
 
     cv::putText(*output_matrix, "If the arrow is red there is", cv::Point(offset, offset + r), 
                 cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-    cv::putText(*output_matrix, "an obstacle on the tarjectory", cv::Point(offset, offset + r + 35 * font_scale), 
+    cv::putText(*output_matrix, "an obstacle on the trajectory", cv::Point(offset, offset + r + 35 * font_scale), 
                 cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);   
 
 

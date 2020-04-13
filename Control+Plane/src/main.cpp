@@ -58,13 +58,6 @@ int main (int argc, char** argv)
     // Fill in the cloud data
     reader.read ("../test.ply", *cloud_blob);
 
-    // Downsample the original cloud, requires a filtering object with same scale of pcl
-    auto start_ds = std::chrono::high_resolution_clock::now();
-
-    // down_sampling(cloud_blob, cloud_filtered, leaf);
-
-    auto stop_ds = std::chrono::high_resolution_clock::now();
-
     auto start_plane = std::chrono::high_resolution_clock::now();
     
     // Initialize plane object and pass to it the configurator
@@ -74,7 +67,6 @@ int main (int argc, char** argv)
     plane->update(cloud_blob);
 
     auto stop_plane = std::chrono::high_resolution_clock::now();
-
 
     // // If we pass to the progam also an argument, we can test if there are any 
     // // obstacle between the robot and the camera 
@@ -100,7 +92,6 @@ int main (int argc, char** argv)
 
     
 
-
     // ----------------Control Part -------------------------- //
 
     // Create the point in which we store the 3D position of the target
@@ -119,7 +110,7 @@ int main (int argc, char** argv)
 
     // Graphic interface for the control
     cv::Mat controlMat;
-    interfaceBuilding(&controlMat, target_point, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows));
+    interfaceBuilding(&controlMat, target_point, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows), p);
 
     // Stop chrono time
     auto stop_gi = std::chrono::high_resolution_clock::now();
@@ -131,9 +122,6 @@ int main (int argc, char** argv)
                     1.0,0.0,0.0);
     
     std::cerr << endl << "Times: " << endl;
-
-    auto duration_ds = std::chrono::duration_cast<std::chrono::milliseconds>(stop_ds - start_ds);
-    cout << endl << "Downsampling         : " << duration_ds.count() << endl;
 
     auto duration_plane = std::chrono::duration_cast<std::chrono::milliseconds>(stop_plane - start_plane);
     cout << endl << "Plane finding        : " << duration_plane.count() << endl;

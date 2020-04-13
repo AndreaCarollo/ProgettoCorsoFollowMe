@@ -81,6 +81,24 @@ bool ConfigReader::getValue(std::string tag, Eigen::Vector3f& value)
     return false;
 }
 
+bool ConfigReader::getValue(std::string tag, cv::Scalar& value)
+{
+    map<string, string>::iterator it;
+    it = m_ConfigSettingMap.find(tag);
+    ushort strBegin = 0, strEnd = 0;
+    if(it != m_ConfigSettingMap.end())
+    {
+        for (ushort i=0; i<3; i++)
+        {
+            strEnd = it->second.find_first_of(",", strBegin);
+            value[i] = atof(trim(it->second.substr(strBegin, strEnd - strBegin)).c_str());
+            strBegin = strEnd+1;
+        }
+        return true;
+    }
+    return false;
+}
+
 bool ConfigReader::parseFile(string fileName)
 {
     ifstream inputFile;

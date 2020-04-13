@@ -34,6 +34,7 @@ class ConfigReader
         bool getValue(std::string tag, float& value);
         bool getValue(std::string tag, std::string& value);
         bool getValue(std::string tag, Eigen::Vector3f& value);
+        bool getValue(std::string tag, cv::Scalar& value);
 
         // Function dumpFileValues is for only debug purpose
         void dumpFileValues();
