@@ -67,11 +67,11 @@ int main (int argc, char** argv)
 
     auto start_plane = std::chrono::high_resolution_clock::now();
     
-    // Initialize plane object
-    Plane plane(p);
+    // Initialize plane object and pass to it the configurator
+    Plane *plane = Plane::getInstance(p);
     
     // Call the update method, to be put in a loop
-    plane.update(cloud_blob);
+    plane->update(cloud_blob);
 
     auto stop_plane = std::chrono::high_resolution_clock::now();
 
@@ -110,7 +110,7 @@ int main (int argc, char** argv)
     auto start_pt = std::chrono::high_resolution_clock::now();
 
     // Apply the transformation also to the cloud point with the terget point only
-    refPnt = pcl::transformPoint(refPnt, plane.transf_mtx);
+    refPnt = pcl::transformPoint(refPnt, plane->transf_mtx);
 
     auto stop_pt = std::chrono::high_resolution_clock::now();
 
@@ -157,17 +157,17 @@ int main (int argc, char** argv)
     // --------------- Rappresentation part ------------------ //
 
     // Apply transformation mtx to plane and pcl
-    pcl::transformPointCloud(*plane.easy_cloud, *cloud_tmp, plane.transf_mtx);
-    plane.easy_cloud.swap (cloud_tmp);
-    pcl::transformPointCloud(*plane.plane_cloud, *cloud_tmp, plane.transf_mtx);
-    plane.plane_cloud.swap (cloud_tmp);
+    pcl::transformPointCloud(*plane->easy_cloud, *cloud_tmp, plane->transf_mtx);
+    plane->easy_cloud.swap (cloud_tmp);
+    pcl::transformPointCloud(*plane->plane_cloud, *cloud_tmp, plane->transf_mtx);
+    plane->plane_cloud.swap (cloud_tmp);
 
     // All the point clouds are added to the visualizer
     viewer->initCameraParameters();
-    PCViewer(plane.easy_cloud, viewer);
-    viewer->addPointCloud(plane.plane_cloud, color_handler);
+    PCViewer(plane->easy_cloud, viewer);
+    viewer->addPointCloud(plane->plane_cloud, color_handler);
     viewer->addCoordinateSystem(1000, "RF_plane");
-    viewer->addCoordinateSystem(1000, plane.transf_mtx, "RF_cam");
+    viewer->addCoordinateSystem(1000, plane->transf_mtx, "RF_cam");
     
     while (!viewer->wasStopped())
     {

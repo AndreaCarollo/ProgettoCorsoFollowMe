@@ -3,6 +3,9 @@
 // --------------------------------------------
 // --------------Class functions---------------
 // --------------------------------------------
+
+Plane* Plane::segInstance = NULL;
+
 Plane::Plane(ConfigReader *p)
 {
     plane_cloud = PntCld::Ptr (new PntCld);
@@ -12,7 +15,7 @@ Plane::Plane(ConfigReader *p)
     coefficients = pcl::ModelCoefficients::Ptr (new pcl::ModelCoefficients());
     transf_mtx = Eigen::Affine3f::Identity();
 
-    // Internal parameters calling the configurator
+    // Internal parameters from the configurator
     p->getValue("RANSAC_MAX_ITER", tries);
     p->getValue("PLANE_NORMAL", normal);
     p->getValue("PLANE_THRESHOLD", threshold);
@@ -29,6 +32,18 @@ Plane::Plane(ConfigReader *p)
     seg.setEpsAngle(M_PI/180*angle);
     seg.setOptimizeCoefficients(true);  // optional
 
+}
+
+Plane* Plane::getInstance(ConfigReader *parser)
+{
+    // No need to use double re-check lock mechanism here
+    // because this getInstance() will call at the time of
+    // initialization only and mostly, at the time of
+    // initialization, there will be only one thread.
+    if(segInstance == NULL)
+        segInstance = new Plane(parser);
+
+    return segInstance;
 }
 
 void Plane::setTransfMtx()
