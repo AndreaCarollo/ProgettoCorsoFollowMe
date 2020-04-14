@@ -267,10 +267,8 @@ void Control::A_star()
     path[(stop->row-1)*max_col + stop->row] = stop;
 
 
-    while (true) {
-        search(start);
-    }
-
+    search(start);
+    
     tmp_cel = path[(stop->row-1)*max_col + stop->row]->came_from;
 
     do {
@@ -316,6 +314,7 @@ bool Control::search(AStar_cel* current_cel)
 
                 path[(current_row-2)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
                 path[(current_row-2)*max_row + current_col]->came_from = current_cel;
+                search(path[(current_row-2)*max_row + current_col]);
 
             }
 
@@ -355,6 +354,7 @@ bool Control::search(AStar_cel* current_cel)
 
                 path[(current_row-1)*max_row + current_col+1]->path_lenght = current_cel->path_lenght + 1;
                 path[(current_row-1)*max_row + current_col+1]->came_from = current_cel;
+                search(path[(current_row-1)*max_row + current_col+1]);
 
             }
 
@@ -395,7 +395,7 @@ bool Control::search(AStar_cel* current_cel)
 
                 path[(current_row)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
                 path[(current_row)*max_row + current_col]->came_from = current_cel;
-
+                search(path[(current_row)*max_row + current_col]);
             }
 
         } else {    // Never visited cell
@@ -435,6 +435,7 @@ bool Control::search(AStar_cel* current_cel)
 
                 path[(current_row-1)*max_row + current_col-1]->path_lenght = current_cel->path_lenght + 1;
                 path[(current_row-1)*max_row + current_col-1]->came_from = current_cel;
+                search(path[(current_row-1)*max_row + current_col-1]);
 
             }
 
