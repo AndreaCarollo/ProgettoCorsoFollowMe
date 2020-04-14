@@ -3,7 +3,6 @@
 #include "./lib/segmentation.h"
 #include "./lib/configurator.h"
 #include "./lib/rs_stream.h"
-#include "./lib/control.h"
 
 
 using namespace std;
@@ -110,8 +109,8 @@ int main (int argc, char** argv)
     auto start_gi = std::chrono::high_resolution_clock::now();
 
     // Graphic interface for the control
-    Control ctrl(p);
-    ctrl.update(&refPnt, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows));
+    cv::Mat controlMat;
+    interfaceBuilding(&controlMat, target_point, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows), p);
 
     // Stop chrono time
     auto stop_gi = std::chrono::high_resolution_clock::now();
@@ -161,7 +160,7 @@ int main (int argc, char** argv)
     while (!viewer->wasStopped())
     {
         cv::imshow("Image",cvFrame);
-        cv::imshow("Control",ctrl.interface);
+        cv::imshow("Control",controlMat);
         viewer->spinOnce (100); // wait for some microseconds, makes the viewer interactive
 
         cv::waitKey(1);

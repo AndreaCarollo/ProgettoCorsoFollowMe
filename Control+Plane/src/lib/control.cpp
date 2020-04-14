@@ -39,6 +39,10 @@ Control::Control(ConfigReader *p, bool flag)
     x_robot = interface_size.width/2;
     y_robot = interface_size.height - offset;
 
+    max_row = interface.rows / AStarScale;
+    max_col = interface.cols / AStarScale;
+    path = std::vector<AStar_cel*>(max_row*max_col, NULL);
+
 }
 
 void Control::update(cv::Point* targetPoint2D, Stream* stream)
@@ -75,6 +79,27 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 
     obstacle_finding(stream->cloud);
 
+    if (!flag){
+
+        cv::putText(interface, "If the arrow is red there is", cv::Point(offset, offset + r), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
+        cv::putText(interface, "an obstacle on the trajectory", cv::Point(offset, offset + r + 35 * font_scale), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
+
+        put_arrow();
+
+    } else {
+
+        cv::putText(interface, "To reach the target point,", cv::Point(offset, offset + r), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
+        cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
+
+        path = std::vector<AStar_cel*>(max_row*max_col, NULL);
+
+        A_star();
+    }
+
     // Circle for the robot position
     cv::circle(interface, cv::Point(x_robot,y_robot), r, robotColor, cv::FILLED, cv::LINE_8);
     cv::circle(interface, cv::Point(interface_size.width - offset,offset), r, robotColor,  cv::FILLED, cv::LINE_8);
@@ -92,39 +117,17 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
     cv::putText(interface, "Obstacles", cv::Point(interface_size.width - offset - r - 140, 3 * offset + 5 * r), 
                 cv::FONT_HERSHEY_SIMPLEX, font_scale, obstacleColor, 2);
 
-    // Message for error
-    if (!flag){
-        cv::putText(interface, "If the arrow is red there is", cv::Point(offset, offset + r), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-        cv::putText(interface, "an obstacle on the trajectory", cv::Point(offset, offset + r + 35 * font_scale), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-
-        put_arrow();
-
-    } else {
-        cv::putText(interface, "To reach the target point,", cv::Point(offset, offset + r), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-        cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-
-        // A_star();
-    }
-
 }
 
-// Test Phase
-void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize)
+void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvFrameSize)
 {
 
     // Clean the interface matrix
     interface.release();
     interface = cv::Mat(interface_size, CV_8UC3, backgroundColor);
-
-    pcl::PointXYZ refPnt = PointCloud->at(targetPoint2D->x, targetPoint2D->y);
-
-    tmp = (refPnt.x)*scale;
+    tmp = (refPnt->x)*scale;
     x_target = x_robot - tmp;
-    tmp = (refPnt.z)*scale;
+    tmp = (refPnt->z)*scale;
     y_target = y_robot - tmp;
 
     // Angulat coefficient of the rect that goes from robot to target
@@ -146,6 +149,29 @@ void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size 
 
     obstacle_finding(PointCloud);
 
+    
+    if (!flag){
+
+        cv::putText(interface, "If the arrow is red there is", cv::Point(offset, offset + r), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
+        cv::putText(interface, "an obstacle on the trajectory", cv::Point(offset, offset + r + 35 * font_scale), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
+
+        put_arrow();
+
+    } else {
+        
+        cv::putText(interface, "To reach the target point,", cv::Point(offset, offset + r), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
+        cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
+        
+        path = std::vector<AStar_cel*>(max_row*max_col, NULL);
+
+        A_star();
+
+    }
+
     // Circle for the robot position
     cv::circle(interface, cv::Point(x_robot,y_robot), r, robotColor, cv::FILLED, cv::LINE_8);
     cv::circle(interface, cv::Point(interface_size.width - offset,offset), r, robotColor,  cv::FILLED, cv::LINE_8);
@@ -162,24 +188,6 @@ void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size 
     cv::circle(interface, cv::Point(interface_size.width - offset,3 * offset + 4 * r), 4, obstacleColor,  cv::FILLED, cv::LINE_8);
     cv::putText(interface, "Obstacles", cv::Point(interface_size.width - offset - r - 140, 3 * offset + 5 * r), 
                 cv::FONT_HERSHEY_SIMPLEX, font_scale, obstacleColor, 2);
-
-    // Message for error
-    if (!flag){
-        cv::putText(interface, "If the arrow is red there is", cv::Point(offset, offset + r), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-        cv::putText(interface, "an obstacle on the trajectory", cv::Point(offset, offset + r + 35 * font_scale), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-
-        put_arrow();
-
-    } else {
-        cv::putText(interface, "To reach the target point,", cv::Point(offset, offset + r), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-        cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-
-        // A_star();
-    }
 
 }
 
@@ -212,6 +220,8 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
 
                 if ( (dist <= dist_max) && (dist >= dist_min) ) {
                     there_is_an_obstacle = true;
+
+                    path[(y_p/AStarScale-1)+x_p/AStarScale]->free = false;
                 }
             }
 
@@ -238,8 +248,208 @@ void Control::put_arrow()
 
 }
 
-void Control::A_star(){
+void Control::A_star()
+{
 
-    // To implement
+    start->came_from = NULL;
+    start->col = y_robot / AStarScale;
+    start->row = x_robot / AStarScale;
+    start->visited = 1;
+    start->path_lenght = 0;
+
+    path[(start->row-1)*max_col + start->row] = start;
+    
+
+    stop->col = y_target / AStarScale;
+    stop->row = x_target / AStarScale;
+    stop->visited = 10;
+
+    path[(stop->row-1)*max_col + stop->row] = stop;
+
+
+    while (true) {
+        search(start);
+    }
+
+    tmp_cel = path[(stop->row-1)*max_col + stop->row]->came_from;
+
+    do {
+
+        x_rect = tmp_cel->col*AStarScale;
+        y_rect = tmp_cel->col*AStarScale;
+
+        cv::rectangle(interface, 
+                      cv::Point(x_rect,y_rect), cv::Point(x_rect+AStarScale,y_rect+AStarScale), 
+                      arrowColor, -1);
+
+        tmp_cel = tmp_cel->came_from;
+
+    } while( tmp_cel != NULL);
+
+}
+
+// Recoursive searching of the "Best Path"
+bool Control::search(AStar_cel* current_cel)
+{
+    int current_row = current_cel->row;
+    int current_col = current_cel->col;
+
+    // UP SEARCH
+    if ((path[(current_row-2)*max_row + current_col]->free)     &&
+        (current_row-1 >= 0)    && (current_row-1 <= max_row)   &&
+        (current_col >= 0)      && (current_col <= max_col))
+    {
+
+        if (path[(current_row-2)*max_row + current_col]->visited == 10) {               // Find the target
+
+            if (path[(current_row-2)*max_row + current_col]->path_lenght > current_cel->path_lenght + 1) {
+
+                path[(current_row-2)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
+                path[(current_row-2)*max_row + current_col]->came_from = current_cel;
+
+            }
+            return true;
+
+        } else if (path[(current_row-2)*max_row + current_col]->visited == 1) {         // Already visited cel
+            
+            if (path[(current_row-2)*max_row + current_col]->path_lenght > current_cel->path_lenght + 1) {
+
+                path[(current_row-2)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
+                path[(current_row-2)*max_row + current_col]->came_from = current_cel;
+
+            }
+
+        } else {    // Never visited cell
+
+            up->row = current_row-1;
+            up->col = current_col;
+            up->came_from = current_cel;
+            up->path_lenght = current_cel->path_lenght+1;
+            up->visited = 1;
+
+            path[(current_row-2)*max_row + current_col] = up;
+            search(up);
+
+        }   
+    }
+
+    // RIGHT SEARCH
+    if ((path[(current_row-1)*max_row + current_col+1]->free) &&
+        (current_row >= 0)      && (current_row <= max_row)     &&
+        (current_col+1 >= 0)    && (current_col+1 <= max_col))
+    {
+
+        if (path[(current_row-1)*max_row + current_col+1]->visited == 10) {               // Find the target
+
+            if (path[(current_row-1)*max_row + current_col+1]->path_lenght > current_cel->path_lenght + 1) {
+
+                path[(current_row-1)*max_row + current_col+1]->path_lenght = current_cel->path_lenght + 1;
+                path[(current_row-1)*max_row + current_col+1]->came_from = current_cel;
+
+            }
+            return true;
+
+        } else if (path[(current_row-1)*max_row + current_col+1]->visited == 1) {         // Already visited cel
+            
+            if (path[(current_row-1)*max_row + current_col+1]->path_lenght > current_cel->path_lenght + 1) {
+
+                path[(current_row-1)*max_row + current_col+1]->path_lenght = current_cel->path_lenght + 1;
+                path[(current_row-1)*max_row + current_col+1]->came_from = current_cel;
+
+            }
+
+        } else {    // Never visited cell
+
+            up->row = current_row-1;
+            up->col = current_col;
+            up->came_from = current_cel;
+            up->path_lenght = current_cel->path_lenght+1;
+            up->visited = 1;
+
+            path[(current_row-1)*max_row + current_col+1] = up;
+            search(up);
+
+        }   
+    }
+
+    // BOTTOM SEARCH
+    if ((path[(current_row)*max_row + current_col]->free)       &&
+        (current_row+1 >= 0)    && (current_row+1 <= max_row)   &&
+        (current_col >= 0)      && (current_col <= max_col))
+    {
+
+        if (path[(current_row)*max_row + current_col]->visited == 10) {               // Find the target
+
+            if (path[(current_row)*max_row + current_col]->path_lenght > current_cel->path_lenght + 1) {
+
+                path[(current_row)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
+                path[(current_row)*max_row + current_col]->came_from = current_cel;
+
+            }       
+
+            return true;
+
+        } else if (path[(current_row)*max_row + current_col]->visited == 1) {         // Already visited cel
+            
+            if (path[(current_row)*max_row + current_col]->path_lenght > current_cel->path_lenght + 1) {
+
+                path[(current_row)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
+                path[(current_row)*max_row + current_col]->came_from = current_cel;
+
+            }
+
+        } else {    // Never visited cell
+
+            up->row = current_row-1;
+            up->col = current_col;
+            up->came_from = current_cel;
+            up->path_lenght = current_cel->path_lenght+1;
+            up->visited = 1;
+
+            path[(current_row)*max_row + current_col] = up;
+            search(up);
+
+        }   
+    }
+
+    // LEFT SEARCH
+    if ((path[(current_row-1)*max_row + current_col-1]->free)   &&
+        (current_row >= 0)      && (current_row <= max_row)     &&
+        (current_col-1 >= 0)    && (current_col-1 <= max_col))
+    {
+
+        if (path[(current_row-1)*max_row + current_col-1]->visited == 10) {               // Find the target
+
+            if (path[(current_row-1)*max_row + current_col-1]->path_lenght > current_cel->path_lenght + 1) {
+
+                path[(current_row-1)*max_row + current_col-1]->path_lenght = current_cel->path_lenght + 1;
+                path[(current_row-1)*max_row + current_col-1]->came_from = current_cel;
+
+            }
+
+            return true;
+
+        } else if (path[(current_row-1)*max_row + current_col-1]->visited == 1) {         // Already visited cel
+            
+            if (path[(current_row-1)*max_row + current_col-1]->path_lenght > current_cel->path_lenght + 1) {
+
+                path[(current_row-1)*max_row + current_col-1]->path_lenght = current_cel->path_lenght + 1;
+                path[(current_row-1)*max_row + current_col-1]->came_from = current_cel;
+
+            }
+
+        } else {    // Never visited cell
+
+            up->row = current_row-1;
+            up->col = current_col;
+            up->came_from = current_cel;
+            up->path_lenght = current_cel->path_lenght+1;
+            up->visited = 1;
+
+            path[(current_row-1)*max_row + current_col-1] = up;
+            search(up);
+
+        }   
+    }
 
 }

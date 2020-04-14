@@ -6,6 +6,24 @@
 #include "./rs_stream.h"
 #include "./configurator.h"
 
+int AStarScale = 10;
+
+
+typedef struct Cel_struct AStar_cel;
+
+struct Cel_struct {
+
+    int row;
+    int col;
+    int path_lenght;
+    bool free = true;
+    int visited = 0;
+    AStar_cel *came_from;
+
+};
+
+typedef std::vector<AStar_cel*> AStar_mtx;
+
 
 // --------------------------------------------
 // -------------Class declarations-------------
@@ -15,12 +33,10 @@ class Control{
 
         cv::Mat interface;
 
-        Control(ConfigReader *p, bool flag);
+        Control(ConfigReader *p, bool flag = false);
         void update(cv::Point* targetPoint2D, Stream* stream);
-        // Test Phase
-        void update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize);
+        void update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvFrameSize);
         
-
     private:
 
         cv::Size interface_size;
@@ -41,9 +57,21 @@ class Control{
 
         double dist_rt, dist_max, dist_min;
 
+        AStar_cel *start;
+        AStar_cel *stop;
+        
+        AStar_cel *up;
+
+        int max_row, max_col;
+        AStar_mtx path;
+
+        int x_rect,y_rect;
+        AStar_cel *tmp_cel;
+
         void obstacle_finding(PntCld::Ptr cloud);
         void put_arrow();
         void A_star();
+        bool search(AStar_cel* current_cel);
 
 };
 
