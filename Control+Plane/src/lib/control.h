@@ -6,7 +6,6 @@
 #include "./rs_stream.h"
 #include "./configurator.h"
 
-
 struct AStar_cel {
 
     bool free;

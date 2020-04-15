@@ -25,7 +25,8 @@ Control::Control(ConfigReader *p, bool flag)
     p->getValue("OBST_MAX_THRESH", up_threshold);           // Maximum height to be considered an obstacle
 
     p->getValue("OBSTACLE_GRAIN", (int&) obstacle_resolution);
-    p->getValue("ASTAR_SCALE", (int&) AStarScale);
+    
+    AStarScale = 10;
 
     scale = interface_size.height / max_dist;         // distance scale from real [mm] to graphic interface
 
