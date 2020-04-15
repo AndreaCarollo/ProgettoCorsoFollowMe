@@ -109,6 +109,20 @@ int main (int argc, char** argv)
 
     // Stop chrono time
     auto stop_gi = std::chrono::high_resolution_clock::now();
+
+
+    // Object finding test
+    for (int i = 0; i<ctrl.grid.size(); i++) {
+        for (int j = 0; j<ctrl.grid[1].size(); j++) {
+            if ( !(ctrl.grid[i][j].free) ){
+
+                cv::rectangle(ctrl.interface, cv::Point(ctrl.grid[i][j].col*64, ctrl.grid[i][j].row*64), 
+                            cv::Point(ctrl.grid[i][j].col*64+64, ctrl.grid[i][j].row*64+64), cv::Scalar(0,0,255), -1);
+
+            }
+        }
+    }
+
     
     std::cerr << endl << "Times: " << endl;
 

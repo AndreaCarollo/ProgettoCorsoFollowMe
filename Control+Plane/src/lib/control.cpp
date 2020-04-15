@@ -26,7 +26,7 @@ Control::Control(ConfigReader *p, bool flag)
 
     p->getValue("OBSTACLE_GRAIN", (int&) obstacle_resolution);
     
-    AStarScale = 10;
+    AStarScale = 64;
 
     scale = interface_size.height / max_dist;         // distance scale from real [mm] to graphic interface
 
@@ -195,7 +195,7 @@ void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvF
 
 void Control::obstacle_finding(PntCld::Ptr cloud, Plane* plane)
 {
-    
+
     // Obstacle finding
     for (int i = 0; i<cloud->size()/obstacle_resolution; i++){
 
@@ -209,9 +209,12 @@ void Control::obstacle_finding(PntCld::Ptr cloud, Plane* plane)
             tmp = (tmp_pnt.z)*scale;
             int y_p = y_robot - tmp;
 
-            if (x_p >= 0 && y_p >= 0 && x_p < interface.cols && y_p < interface.rows){    // Obstacle inside the interface
+            if (x_p >= 0 && y_p >= 0 && x_p < interface.cols && y_p < interface.rows){          // Obstacle inside the interface
                 if ( (abs(x_p-x_target) > AStarScale) && (abs(y_p-y_target) > AStarScale) ){    // Obstacle at a certain distance from the robot
                     
+                    grid[x_p/AStarScale][y_p/AStarScale].col = x_p/AStarScale;
+                    grid[x_p/AStarScale][y_p/AStarScale].row = y_p/AStarScale;
+
                     grid[x_p/AStarScale][y_p/AStarScale].free = false;
 
                 }
@@ -318,7 +321,7 @@ void Control::neighbors(AStar_cel* current_cel){
             {
                 if ((x+xx >= 0) && (y+yy >= 0) && (x+xx < max_col) && (y+yy < max_row))
                 {
-                    if ((grid[x+xx][y+yy].free) && !(grid[x+xx][y+yy].visited)){
+                    if ((!grid[x+xx][y+yy].visited) && (grid[x+xx][y+yy].free)) {
 
                         grid[x+xx][y+yy].col        = x+xx;
                         grid[x+xx][y+yy].row        = y+yy;
@@ -326,6 +329,7 @@ void Control::neighbors(AStar_cel* current_cel){
                         grid[x+xx][y+yy].visited    = true;
 
                         frontier.push(&grid[x+xx][y+yy]);
+                        
                     }
                 }
             }

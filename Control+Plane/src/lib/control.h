@@ -30,6 +30,7 @@ class Control{
 
         cv::Mat interface;
         int AStarScale;
+        AStar_mtx grid;
 
         Control(ConfigReader *p, bool flag = false);
         void update(cv::Point* targetPoint2D, Stream* stream, Plane* plane);
@@ -62,7 +63,7 @@ class Control{
         AStar_cel *up;
 
         int max_row, max_col;
-        AStar_mtx grid;
+
         std::queue<AStar_cel*> frontier;
 
         int x_rect,y_rect;
