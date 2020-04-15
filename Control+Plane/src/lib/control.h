@@ -6,8 +6,6 @@
 #include "./rs_stream.h"
 #include "./configurator.h"
 
-int AStarScale = 10;
-
 
 struct AStar_cel {
 
@@ -31,6 +29,7 @@ class Control{
     public:
 
         cv::Mat interface;
+        int AStarScale;
 
         Control(ConfigReader *p, bool flag = false);
         void update(cv::Point* targetPoint2D, Stream* stream);
