@@ -9,7 +9,7 @@ Control::Control(ConfigReader *p, bool flag)
     
     // Interface option
     interface_size = cv::Size(640,640);             // human graphic interface size
-    r = 10;                                         // r      -> Cyrcle radious for robot and target
+    r = 15;                                         // r      -> Cyrcle radious for robot and target
     offset = 18;                                    // offset -> Offset distance (some differene graphic uses)
 
     font_scale = 0.9f;                              // Font scale for text
@@ -46,7 +46,7 @@ Control::Control(ConfigReader *p, bool flag)
 
 }
 
-void Control::update(cv::Point* targetPoint2D, Stream* stream)
+void Control::update(cv::Point* targetPoint2D, Stream* stream, Plane* plane)
 {
 
     // Clean the interface matrix
@@ -77,8 +77,8 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 
 
     // GRAPHIC INTERFACE PRELIMINARY RENDER
-
-    obstacle_finding(stream->cloud);
+    there_is_an_obstacle = false;
+    obstacle_finding(stream->cloud, plane);
 
     if (!flag){
 
@@ -120,9 +120,9 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 
 }
 
-void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvFrameSize)
+void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvFrameSize, Plane* plane)
 {
-
+    
     // Clean the interface matrix
     interface.release();
     interface = cv::Mat(interface_size, CV_8UC3, backgroundColor);
@@ -148,29 +148,29 @@ void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvF
 
 
     // GRAPHIC INTERFACE PRELIMINARY RENDER
-
-    obstacle_finding(PointCloud);
-
+    there_is_an_obstacle = false;
+    obstacle_finding(PointCloud, plane);
     
-    if (!flag){
+    
+    if (flag){
 
+        cv::putText(interface, "To reach the target point,", cv::Point(offset, offset + r), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);
+        cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);
+        
+        grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 0, NULL, 0, 0}));
+
+        A_star();
+
+    } else {
+        
         cv::putText(interface, "If the arrow is red there is", cv::Point(offset, offset + r), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
         cv::putText(interface, "an obstacle on the trajectory", cv::Point(offset, offset + r + 35 * font_scale), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
 
         put_arrow();
-
-    } else {
-        
-        cv::putText(interface, "To reach the target point,", cv::Point(offset, offset + r), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-        cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
-                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
-        
-        grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 0, nullptr, 0, 0}));
-
-        A_star();
 
     }
 
@@ -193,23 +193,25 @@ void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvF
 
 }
 
-void Control::obstacle_finding(PntCld::Ptr cloud)
+void Control::obstacle_finding(PntCld::Ptr cloud, Plane* plane)
 {
-
+    
     // Obstacle finding
     for (int i = 0; i<cloud->size()/obstacle_resolution; i++){
 
-        if ( cloud->points[obstacle_resolution*i].y > low_threshold && 
-             cloud->points[obstacle_resolution*i].y < up_threshold ){
+        tmp_pnt = pcl::transformPoint(cloud->points[obstacle_resolution*i], plane->transf_mtx);
 
-            tmp = (cloud->points[obstacle_resolution*i].x)*scale;
+        if ( tmp_pnt.y > low_threshold && 
+             tmp_pnt.y < up_threshold ){
+
+            tmp = (tmp_pnt.x)*scale;
             int x_p = x_robot - tmp;
-            tmp = (cloud->points[obstacle_resolution*i].z)*scale;
+            tmp = (tmp_pnt.z)*scale;
             int y_p = y_robot - tmp;
 
-            if (x_p >= 0 && y_p >= 0 && x_p <= interface.cols && y_p <= interface.rows){    // Obstacle inside the interface
-                if ( (abs(x_p-x_target)>AStarScale) && (abs(y_p-y_target)>AStarScale) ){    // Obstacle at a certain distance from the robot
-
+            if (x_p >= 0 && y_p >= 0 && x_p < interface.cols && y_p < interface.rows){    // Obstacle inside the interface
+                if ( (abs(x_p-x_target) > AStarScale) && (abs(y_p-y_target) > AStarScale) ){    // Obstacle at a certain distance from the robot
+                    
                     grid[x_p/AStarScale][y_p/AStarScale].free = false;
 
                 }
@@ -262,38 +264,37 @@ void Control::A_star()
 {
 
     // Set the starting point in the grid - START
-    grid[x_robot/AStarScale][y_robot/AStarScale].came_from   = NULL;
-    grid[x_robot/AStarScale][y_robot/AStarScale].visited     = true;
-    grid[x_robot/AStarScale][y_robot/AStarScale].path_lenght = 0;
-    grid[x_robot/AStarScale][y_robot/AStarScale].col         = x_robot/AStarScale;
-    grid[x_robot/AStarScale][y_robot/AStarScale].row         = y_robot/AStarScale;
+    grid[x_robot/AStarScale][y_robot/AStarScale].visited    = true;
+    grid[x_robot/AStarScale][y_robot/AStarScale].col        = x_robot/AStarScale;
+    grid[x_robot/AStarScale][y_robot/AStarScale].row        = y_robot/AStarScale;
 
     start = &grid[x_robot/AStarScale][y_robot/AStarScale];
+
     
-
     // Set the target point in the grid - STOP
-    grid[x_target/AStarScale][y_target/AStarScale].path_lenght = 0;
-    grid[x_target/AStarScale][y_target/AStarScale].col         = x_target/AStarScale;
-    grid[x_target/AStarScale][y_target/AStarScale].row         = y_target/AStarScale;
+    grid[x_target/AStarScale][y_target/AStarScale].col      = x_target/AStarScale;
+    grid[x_target/AStarScale][y_target/AStarScale].row      = y_target/AStarScale;
 
-    stop = &grid[x_target/AStarScale][y_target/AStarScale];
-
+    
     frontier.push(start);
 
     do {
-
+        
         current = frontier.front();
         frontier.pop();
+
         neighbors(current);
 
-    } while (frontier.empty());
+    } while (frontier.size() != 0);
+
     
-    tmp_cel = stop->came_from;
+    tmp_cel = &grid[x_target/AStarScale][y_target/AStarScale];  // Starting from the target point ...
+    // ... follow the path until the starting point where the come_from pointer is NULL
 
     do {
 
         x_rect = tmp_cel->col*AStarScale;
-        y_rect = tmp_cel->col*AStarScale;
+        y_rect = tmp_cel->row*AStarScale;
 
         cv::rectangle(interface, 
                       cv::Point(x_rect,y_rect), cv::Point(x_rect+AStarScale,y_rect+AStarScale), 
@@ -315,20 +316,19 @@ void Control::neighbors(AStar_cel* current_cel){
         {
             if (abs(xx) != abs(yy))
             {
+                if ((x+xx >= 0) && (y+yy >= 0) && (x+xx < max_col) && (y+yy < max_row))
+                {
+                    if ((grid[x+xx][y+yy].free) && !(grid[x+xx][y+yy].visited)){
 
-                if ((grid[x+xx][y+yy].free) && !(grid[x+xx][y+yy].visited)){
+                        grid[x+xx][y+yy].col        = x+xx;
+                        grid[x+xx][y+yy].row        = y+yy;
+                        grid[x+xx][y+yy].came_from  = current_cel;
+                        grid[x+xx][y+yy].visited    = true;
 
-                    grid[x+xx][y+yy].col        = x+xx;
-                    grid[x+xx][y+yy].row        = y+yy;
-                    grid[x+xx][y+yy].came_from  = current_cel;
-                    grid[x+xx][y+yy].visited    = true;
-
-                    frontier.push(&grid[x+xx][y+yy]);
-
+                        frontier.push(&grid[x+xx][y+yy]);
+                    }
                 }
-
             }
         }
     }
-
 }

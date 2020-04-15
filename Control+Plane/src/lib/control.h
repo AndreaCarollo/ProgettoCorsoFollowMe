@@ -4,6 +4,7 @@
 
 #include "./followme.h"
 #include "./rs_stream.h"
+#include "./segmentation.h"
 #include "./configurator.h"
 
 struct AStar_cel {
@@ -31,8 +32,8 @@ class Control{
         int AStarScale;
 
         Control(ConfigReader *p, bool flag = false);
-        void update(cv::Point* targetPoint2D, Stream* stream);
-        void update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvFrameSize);
+        void update(cv::Point* targetPoint2D, Stream* stream, Plane* plane);
+        void update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvFrameSize, Plane* plane);
         
     private:
 
@@ -53,6 +54,7 @@ class Control{
         int x1_arrow, x2_arrow, y1_arrow, y2_arrow;
 
         double dist_rt, dist_max, dist_min;
+        pcl::PointXYZ tmp_pnt;
 
         AStar_cel *start;
         AStar_cel *stop;
@@ -66,7 +68,7 @@ class Control{
         int x_rect,y_rect;
         AStar_cel *tmp_cel, *current;
 
-        void obstacle_finding(PntCld::Ptr cloud);
+        void obstacle_finding(PntCld::Ptr cloud, Plane* plane);
         void put_arrow();
         void A_star();
         void neighbors(AStar_cel* current_cel);

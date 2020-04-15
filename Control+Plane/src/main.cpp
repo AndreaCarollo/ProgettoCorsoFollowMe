@@ -69,29 +69,23 @@ int main (int argc, char** argv)
 
     auto stop_plane = std::chrono::high_resolution_clock::now();
 
-    // // If we pass to the progam also an argument, we can test if there are any 
-    // // obstacle between the robot and the camera 
-    // if (argv[1] != NULL){
-    //     // We create a whall on the "trajectory" that simulate an obstacle
-    //     float x_start = -100.0;
-    //     float y_start = 500.0;
-    //     pcl::PointXYZ Point;
+    // If we pass to the progam also an argument, we can test if there are any 
+    // obstacle between the robot and the camera 
+    if (argv[1] != NULL){
+        // We create a whall on the "trajectory" that simulate an obstacle
+        float x_start = -700.0;
+        float y_start = -800.0;
+        pcl::PointXYZ Point;
 
-    //     cloud_filtered->points.resize(cloud_filtered->size()+10000);
-
-    //     for (int i = 0; i < 500; i++){
-    //         for (int j = 0; j < 20; j++){
-    //             Point.x = x_start+i;
-    //             Point.y = y_start+5*j;
-    //             Point.z = 1800.0;
-
-    //             cloud_filtered->points.push_back(Point);
-    //         }
-    //     }
-    // }
-
-
-    
+        for (int i = 0; i < 500; i++){
+            for (int j = 0; j < 20; j++){
+                Point.x = x_start+5*i;
+                Point.y = y_start+5*j;
+                Point.z = 1500.0;
+                cloud_blob->points.push_back(Point);
+            }
+        }
+    }
 
     // ----------------Control Part -------------------------- //
 
@@ -110,17 +104,11 @@ int main (int argc, char** argv)
     auto start_gi = std::chrono::high_resolution_clock::now();
 
     // Graphic interface for the control
-    Control ctrl(p);
-    ctrl.update(&refPnt, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows));
+    Control ctrl(p, true);
+    ctrl.update(&refPnt, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows), plane);
 
     // Stop chrono time
     auto stop_gi = std::chrono::high_resolution_clock::now();
-
-    // Add a cube to the visualizer that works as a marker
-    viewer->addCube(refPnt.x-30,refPnt.x+30,
-                    refPnt.y-30,refPnt.y+30,
-                    refPnt.z-30,refPnt.z+30,
-                    1.0,0.0,0.0);
     
     std::cerr << endl << "Times: " << endl;
 
@@ -145,7 +133,15 @@ int main (int argc, char** argv)
 
     // --------------- Rappresentation part ------------------ //
 
+    // Add a cube to the visualizer that works as a marker
+    viewer->addCube(refPnt.x-30,refPnt.x+30,
+                    refPnt.y-30,refPnt.y+30,
+                    refPnt.z-30,refPnt.z+30,
+                    1.0,0.0,0.0);
+
     // Apply transformation mtx to plane and pcl
+    pcl::transformPointCloud(*cloud_blob, *cloud_tmp, plane->transf_mtx);
+    cloud_blob.swap (cloud_tmp);
     pcl::transformPointCloud(*plane->easy_cloud, *cloud_tmp, plane->transf_mtx);
     plane->easy_cloud.swap (cloud_tmp);
     pcl::transformPointCloud(*plane->plane_cloud, *cloud_tmp, plane->transf_mtx);
@@ -153,7 +149,7 @@ int main (int argc, char** argv)
 
     // All the point clouds are added to the visualizer
     viewer->initCameraParameters();
-    PCViewer(plane->easy_cloud, viewer);
+    PCViewer(cloud_blob, viewer);
     viewer->addPointCloud(plane->plane_cloud, color_handler);
     viewer->addCoordinateSystem(1000, "RF_plane");
     viewer->addCoordinateSystem(1000, plane->transf_mtx, "RF_cam");
