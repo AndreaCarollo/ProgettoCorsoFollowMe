@@ -23,9 +23,10 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <queue>
 #include <chrono> // for time measurement
 
-// Point Cloud headers
+// Point Cloud headerseu
 #include <pcl/io/ply_io.h>
 #include <pcl/point_types.h>
 

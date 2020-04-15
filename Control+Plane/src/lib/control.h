@@ -9,20 +9,19 @@
 int AStarScale = 10;
 
 
-typedef struct Cel_struct AStar_cel;
+struct AStar_cel {
 
-struct Cel_struct {
-
+    bool free;
+    bool visited;
+    int path_lenght;
+    AStar_cel *came_from;
     int row;
     int col;
-    int path_lenght;
-    bool free = true;
-    int visited = 0;
-    AStar_cel *came_from;
 
 };
 
-typedef std::vector<AStar_cel*> AStar_mtx;
+
+typedef std::vector< std::vector<AStar_cel> > AStar_mtx;
 
 
 // --------------------------------------------
@@ -63,15 +62,16 @@ class Control{
         AStar_cel *up;
 
         int max_row, max_col;
-        AStar_mtx path;
+        AStar_mtx grid;
+        std::queue<AStar_cel*> frontier;
 
         int x_rect,y_rect;
-        AStar_cel *tmp_cel;
+        AStar_cel *tmp_cel, *current;
 
         void obstacle_finding(PntCld::Ptr cloud);
         void put_arrow();
         void A_star();
-        bool search(AStar_cel* current_cel);
+        void neighbors(AStar_cel* current_cel);
 
 };
 

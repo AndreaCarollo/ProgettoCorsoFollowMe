@@ -24,14 +24,13 @@ Control::Control(ConfigReader *p, bool flag)
     p->getValue("OBST_MIN_THRESH", low_threshold);          // Minimum height to be considered an obstacle
     p->getValue("OBST_MAX_THRESH", up_threshold);           // Maximum height to be considered an obstacle
 
-    obstacle_resolution;                                    // How many obstacle points in a row
     p->getValue("OBSTACLE_GRAIN", (int&) obstacle_resolution);
 
     scale = interface_size.height / max_dist;         // distance scale from real [mm] to graphic interface
 
 
     // cv::Mat for the graphic interface
-    cv::Mat interface(interface_size, CV_8UC3, backgroundColor);
+    interface = cv::Mat(interface_size, CV_8UC3, backgroundColor);
 
     this->flag = flag;          // If it is true, use the path planning algorithm
 
@@ -41,7 +40,7 @@ Control::Control(ConfigReader *p, bool flag)
 
     max_row = interface.rows / AStarScale;
     max_col = interface.cols / AStarScale;
-    path = std::vector<AStar_cel*>(max_row*max_col, NULL);
+    grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 0, nullptr, 0, 0}));
 
 }
 
@@ -95,7 +94,7 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
         cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
 
-        path = std::vector<AStar_cel*>(max_row*max_col, NULL);
+        grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 0, nullptr, 0, 0}));
 
         A_star();
     }
@@ -125,6 +124,7 @@ void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvF
     // Clean the interface matrix
     interface.release();
     interface = cv::Mat(interface_size, CV_8UC3, backgroundColor);
+
     tmp = (refPnt->x)*scale;
     x_target = x_robot - tmp;
     tmp = (refPnt->z)*scale;
@@ -166,7 +166,7 @@ void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvF
         cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
         
-        path = std::vector<AStar_cel*>(max_row*max_col, NULL);
+        grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 0, nullptr, 0, 0}));
 
         A_star();
 
@@ -205,6 +205,14 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
             tmp = (cloud->points[obstacle_resolution*i].z)*scale;
             int y_p = y_robot - tmp;
 
+            if (x_p >= 0 && y_p >= 0 && x_p <= interface.cols && y_p <= interface.rows){    // Obstacle inside the interface
+                if ( (abs(x_p-x_target)>AStarScale) && (abs(y_p-y_target)>AStarScale) ){    // Obstacle at a certain distance from the robot
+
+                    grid[x_p/AStarScale][y_p/AStarScale].free = false;
+
+                }
+            }
+
             // put a circle in the interface where there are an obstacle
             cv::circle(interface, cv::Point(x_p, y_p), 2, obstacleColor, 2);
 
@@ -219,9 +227,9 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
                 double dist = (x_p - x_robot)^2 + (y_p - y_robot)^2;
 
                 if ( (dist <= dist_max) && (dist >= dist_min) ) {
+
                     there_is_an_obstacle = true;
 
-                    path[(y_p/AStarScale-1)+x_p/AStarScale]->free = false;
                 }
             }
 
@@ -251,25 +259,34 @@ void Control::put_arrow()
 void Control::A_star()
 {
 
-    start->came_from = NULL;
-    start->col = y_robot / AStarScale;
-    start->row = x_robot / AStarScale;
-    start->visited = 1;
-    start->path_lenght = 0;
+    // Set the starting point in the grid - START
+    grid[x_robot/AStarScale][y_robot/AStarScale].came_from   = NULL;
+    grid[x_robot/AStarScale][y_robot/AStarScale].visited     = true;
+    grid[x_robot/AStarScale][y_robot/AStarScale].path_lenght = 0;
+    grid[x_robot/AStarScale][y_robot/AStarScale].col         = x_robot/AStarScale;
+    grid[x_robot/AStarScale][y_robot/AStarScale].row         = y_robot/AStarScale;
 
-    path[(start->row-1)*max_col + start->row] = start;
+    start = &grid[x_robot/AStarScale][y_robot/AStarScale];
     
 
-    stop->col = y_target / AStarScale;
-    stop->row = x_target / AStarScale;
-    stop->visited = 10;
+    // Set the target point in the grid - STOP
+    grid[x_target/AStarScale][y_target/AStarScale].path_lenght = 0;
+    grid[x_target/AStarScale][y_target/AStarScale].col         = x_target/AStarScale;
+    grid[x_target/AStarScale][y_target/AStarScale].row         = y_target/AStarScale;
 
-    path[(stop->row-1)*max_col + stop->row] = stop;
+    stop = &grid[x_target/AStarScale][y_target/AStarScale];
 
+    frontier.push(start);
 
-    search(start);
+    do {
+
+        current = frontier.front();
+        frontier.pop();
+        neighbors(current);
+
+    } while (frontier.empty());
     
-    tmp_cel = path[(stop->row-1)*max_col + stop->row]->came_from;
+    tmp_cel = stop->came_from;
 
     do {
 
@@ -286,171 +303,30 @@ void Control::A_star()
 
 }
 
-// Recoursive searching of the "Best Path"
-bool Control::search(AStar_cel* current_cel)
-{
-    int current_row = current_cel->row;
-    int current_col = current_cel->col;
+void Control::neighbors(AStar_cel* current_cel){
 
-    // UP SEARCH
-    if ((path[(current_row-2)*max_row + current_col]->free)     &&
-        (current_row-1 >= 0)    && (current_row-1 <= max_row)   &&
-        (current_col >= 0)      && (current_col <= max_col))
+    int x = current_cel->col, y = current_cel->row;
+
+    for (int xx = -1; xx <= 1; xx++)
     {
+        for (int yy = -1; yy <= 1; yy++)
+        {
+            if (abs(xx) != abs(yy))
+            {
 
-        if (path[(current_row-2)*max_row + current_col]->visited == 10) {               // Find the target
+                if ((grid[x+xx][y+yy].free) && !(grid[x+xx][y+yy].visited)){
 
-            if (path[(current_row-2)*max_row + current_col]->path_lenght > current_cel->path_lenght + 1) {
+                    grid[x+xx][y+yy].col        = x+xx;
+                    grid[x+xx][y+yy].row        = y+yy;
+                    grid[x+xx][y+yy].came_from  = current_cel;
+                    grid[x+xx][y+yy].visited    = true;
 
-                path[(current_row-2)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
-                path[(current_row-2)*max_row + current_col]->came_from = current_cel;
+                    frontier.push(&grid[x+xx][y+yy]);
 
-            }
-            return true;
-
-        } else if (path[(current_row-2)*max_row + current_col]->visited == 1) {         // Already visited cel
-            
-            if (path[(current_row-2)*max_row + current_col]->path_lenght > current_cel->path_lenght + 1) {
-
-                path[(current_row-2)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
-                path[(current_row-2)*max_row + current_col]->came_from = current_cel;
-                search(path[(current_row-2)*max_row + current_col]);
+                }
 
             }
-
-        } else {    // Never visited cell
-
-            up->row = current_row-1;
-            up->col = current_col;
-            up->came_from = current_cel;
-            up->path_lenght = current_cel->path_lenght+1;
-            up->visited = 1;
-
-            path[(current_row-2)*max_row + current_col] = up;
-            search(up);
-
-        }   
-    }
-
-    // RIGHT SEARCH
-    if ((path[(current_row-1)*max_row + current_col+1]->free) &&
-        (current_row >= 0)      && (current_row <= max_row)     &&
-        (current_col+1 >= 0)    && (current_col+1 <= max_col))
-    {
-
-        if (path[(current_row-1)*max_row + current_col+1]->visited == 10) {               // Find the target
-
-            if (path[(current_row-1)*max_row + current_col+1]->path_lenght > current_cel->path_lenght + 1) {
-
-                path[(current_row-1)*max_row + current_col+1]->path_lenght = current_cel->path_lenght + 1;
-                path[(current_row-1)*max_row + current_col+1]->came_from = current_cel;
-
-            }
-            return true;
-
-        } else if (path[(current_row-1)*max_row + current_col+1]->visited == 1) {         // Already visited cel
-            
-            if (path[(current_row-1)*max_row + current_col+1]->path_lenght > current_cel->path_lenght + 1) {
-
-                path[(current_row-1)*max_row + current_col+1]->path_lenght = current_cel->path_lenght + 1;
-                path[(current_row-1)*max_row + current_col+1]->came_from = current_cel;
-                search(path[(current_row-1)*max_row + current_col+1]);
-
-            }
-
-        } else {    // Never visited cell
-
-            up->row = current_row-1;
-            up->col = current_col;
-            up->came_from = current_cel;
-            up->path_lenght = current_cel->path_lenght+1;
-            up->visited = 1;
-
-            path[(current_row-1)*max_row + current_col+1] = up;
-            search(up);
-
-        }   
-    }
-
-    // BOTTOM SEARCH
-    if ((path[(current_row)*max_row + current_col]->free)       &&
-        (current_row+1 >= 0)    && (current_row+1 <= max_row)   &&
-        (current_col >= 0)      && (current_col <= max_col))
-    {
-
-        if (path[(current_row)*max_row + current_col]->visited == 10) {               // Find the target
-
-            if (path[(current_row)*max_row + current_col]->path_lenght > current_cel->path_lenght + 1) {
-
-                path[(current_row)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
-                path[(current_row)*max_row + current_col]->came_from = current_cel;
-
-            }       
-
-            return true;
-
-        } else if (path[(current_row)*max_row + current_col]->visited == 1) {         // Already visited cel
-            
-            if (path[(current_row)*max_row + current_col]->path_lenght > current_cel->path_lenght + 1) {
-
-                path[(current_row)*max_row + current_col]->path_lenght = current_cel->path_lenght + 1;
-                path[(current_row)*max_row + current_col]->came_from = current_cel;
-                search(path[(current_row)*max_row + current_col]);
-            }
-
-        } else {    // Never visited cell
-
-            up->row = current_row-1;
-            up->col = current_col;
-            up->came_from = current_cel;
-            up->path_lenght = current_cel->path_lenght+1;
-            up->visited = 1;
-
-            path[(current_row)*max_row + current_col] = up;
-            search(up);
-
-        }   
-    }
-
-    // LEFT SEARCH
-    if ((path[(current_row-1)*max_row + current_col-1]->free)   &&
-        (current_row >= 0)      && (current_row <= max_row)     &&
-        (current_col-1 >= 0)    && (current_col-1 <= max_col))
-    {
-
-        if (path[(current_row-1)*max_row + current_col-1]->visited == 10) {               // Find the target
-
-            if (path[(current_row-1)*max_row + current_col-1]->path_lenght > current_cel->path_lenght + 1) {
-
-                path[(current_row-1)*max_row + current_col-1]->path_lenght = current_cel->path_lenght + 1;
-                path[(current_row-1)*max_row + current_col-1]->came_from = current_cel;
-
-            }
-
-            return true;
-
-        } else if (path[(current_row-1)*max_row + current_col-1]->visited == 1) {         // Already visited cel
-            
-            if (path[(current_row-1)*max_row + current_col-1]->path_lenght > current_cel->path_lenght + 1) {
-
-                path[(current_row-1)*max_row + current_col-1]->path_lenght = current_cel->path_lenght + 1;
-                path[(current_row-1)*max_row + current_col-1]->came_from = current_cel;
-                search(path[(current_row-1)*max_row + current_col-1]);
-
-            }
-
-        } else {    // Never visited cell
-
-            up->row = current_row-1;
-            up->col = current_col;
-            up->came_from = current_cel;
-            up->path_lenght = current_cel->path_lenght+1;
-            up->visited = 1;
-
-            path[(current_row-1)*max_row + current_col-1] = up;
-            search(up);
-
-        }   
+        }
     }
 
 }
