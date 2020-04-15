@@ -150,7 +150,7 @@ void interfaceBuilding (cv::Mat *output_matrix, cv::Point targetPoint2D, PntCld:
     (*output_matrix) = cv::Mat(interface_size, CV_8UC3, backgroundColor);
 
     // Obstacle finding
-    for (int i = 0; i<PointCloud->size()/obstacle_resolution; i++){
+    for (size_t i = 0; i<PointCloud->size()/obstacle_resolution; i++){
 
         if ( PointCloud->points[obstacle_resolution*i].y > low_threshold && 
              PointCloud->points[obstacle_resolution*i].y < up_threshold ){
@@ -279,7 +279,7 @@ void interfaceBuilding (cv::Mat *output_matrix, cv::Point* targetPoint2D, Stream
     (*output_matrix) = cv::Mat(interface_size, CV_8UC3, backgroundColor);
 
     // Obstacle finding
-    for (int i = 0; i<stream->cloud->size()/obstacle_resolution; i++){
+    for (size_t i = 0; i<stream->cloud->size()/obstacle_resolution; i++){
 
         if ( stream->cloud->points[obstacle_resolution*i].y > low_threshold && 
              stream->cloud->points[obstacle_resolution*i].y < up_threshold ){

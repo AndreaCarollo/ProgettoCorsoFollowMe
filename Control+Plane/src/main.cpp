@@ -104,7 +104,7 @@ int main (int argc, char** argv)
     auto start_gi = std::chrono::high_resolution_clock::now();
 
     // Graphic interface for the control
-    Control ctrl(p, true);
+    Control ctrl = Control(p, true);
     ctrl.update(&refPnt, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows), plane);
 
     // Stop chrono time
@@ -116,8 +116,8 @@ int main (int argc, char** argv)
         for (int j = 0; j<ctrl.grid[1].size(); j++) {
             if ( !(ctrl.grid[i][j].free) ){
 
-                cv::rectangle(ctrl.interface, cv::Point(ctrl.grid[i][j].col*64, ctrl.grid[i][j].row*64), 
-                            cv::Point(ctrl.grid[i][j].col*64+64, ctrl.grid[i][j].row*64+64), cv::Scalar(0,0,255), -1);
+                cv::rectangle(ctrl.interface, cv::Point(ctrl.grid[i][j].col*16, ctrl.grid[i][j].row*16), 
+                            cv::Point(ctrl.grid[i][j].col*16+16, ctrl.grid[i][j].row*16+16), cv::Scalar(0,0,255), 1);
 
             }
         }
@@ -163,7 +163,7 @@ int main (int argc, char** argv)
 
     // All the point clouds are added to the visualizer
     viewer->initCameraParameters();
-    PCViewer(cloud_blob, viewer);
+    PCViewer(plane->easy_cloud, viewer);
     viewer->addPointCloud(plane->plane_cloud, color_handler);
     viewer->addCoordinateSystem(1000, "RF_plane");
     viewer->addCoordinateSystem(1000, plane->transf_mtx, "RF_cam");

@@ -26,7 +26,7 @@ Control::Control(ConfigReader *p, bool flag)
 
     p->getValue("OBSTACLE_GRAIN", (int&) obstacle_resolution);
     
-    AStarScale = 64;
+    AStarScale = 16;
 
     scale = interface_size.height / max_dist;         // distance scale from real [mm] to graphic interface
 
@@ -42,7 +42,17 @@ Control::Control(ConfigReader *p, bool flag)
 
     max_row = interface.rows / AStarScale;
     max_col = interface.cols / AStarScale;
-    grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 0, nullptr, 0, 0}));
+    grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 1, nullptr, 0, 0}));
+    // for (int i = 0; i<grid.size(); i++) {
+    //     for (int j = 0; j<grid[1].size(); j++) {
+    //         grid[i][j].came_from = nullptr;
+    //         grid[i][j].col = j;
+    //         grid[i][j].row = i;
+    //         grid[i][j].free = true;
+    //         grid[i][j].path_lenght = 0;
+    //         grid[i][j].visited = false;
+    //     }
+    // }
 
 }
 
@@ -96,7 +106,6 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream, Plane* plane)
         cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
 
-        grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 0, nullptr, 0, 0}));
 
         A_star();
     }
@@ -158,8 +167,6 @@ void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvF
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);
         cv::putText(interface, "follow the indicated path", cv::Point(offset, offset + r + 35 * font_scale), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);
-        
-        grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 0, NULL, 0, 0}));
 
         A_star();
 
@@ -197,7 +204,7 @@ void Control::obstacle_finding(PntCld::Ptr cloud, Plane* plane)
 {
 
     // Obstacle finding
-    for (int i = 0; i<cloud->size()/obstacle_resolution; i++){
+    for (size_t i = 0; i<cloud->size()/obstacle_resolution; i++){
 
         tmp_pnt = pcl::transformPoint(cloud->points[obstacle_resolution*i], plane->transf_mtx);
 
@@ -210,8 +217,9 @@ void Control::obstacle_finding(PntCld::Ptr cloud, Plane* plane)
             int y_p = y_robot - tmp;
 
             if (x_p >= 0 && y_p >= 0 && x_p < interface.cols && y_p < interface.rows){          // Obstacle inside the interface
-                if ( (abs(x_p-x_target) > AStarScale) && (abs(y_p-y_target) > AStarScale) ){    // Obstacle at a certain distance from the robot
-                    
+                // if ( (abs(x_p-x_target) > 2*AStarScale) && (abs(y_p-y_target) > 2*AStarScale) ){    // Obstacle at a certain distance from the robot
+                if (!( (x_p > x_target - AStarScale) && (x_p < x_target + AStarScale) && (y_p > y_target - AStarScale) && (y_p < y_target + AStarScale)))
+                {
                     grid[x_p/AStarScale][y_p/AStarScale].col = x_p/AStarScale;
                     grid[x_p/AStarScale][y_p/AStarScale].row = y_p/AStarScale;
 
