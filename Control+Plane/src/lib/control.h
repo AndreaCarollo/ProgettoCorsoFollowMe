@@ -7,15 +7,18 @@
 #include "./segmentation.h"
 #include "./configurator.h"
 
-struct AStar_cel {
+struct position {
+    int x;
+    int y;
+};
 
+struct AStar_cel {
     bool free;
     bool visited;
     int path_lenght;
     AStar_cel *came_from;
     int row;
     int col;
-
 };
 
 
@@ -29,8 +32,8 @@ class Control{
     public:
 
         cv::Mat interface;
-        int AStarScale;
         AStar_mtx grid;
+        int AStarScale;
 
         Control(ConfigReader *p, bool flag = false);
         void update(cv::Point* targetPoint2D, Stream* stream, Plane* plane);
@@ -40,13 +43,13 @@ class Control{
 
         cv::Size interface_size;
         int r, offset;
-        double font_scale;
+        float font_scale;
         float max_dist, low_threshold, up_threshold;
         ushort obstacle_resolution;
         float scale;
         cv::Scalar backgroundColor, obstacleColor, targetColor, robotColor, arrowColor;
 
-        bool flag, there_is_an_obstacle;
+        bool path_planning, there_is_an_obstacle;
 
         int x_robot, y_robot;
 

@@ -7,12 +7,13 @@
 Control::Control(ConfigReader *p, bool flag)
 {
     
-    // Interface option
-    interface_size = cv::Size(640,640);             // human graphic interface size
-    r = 15;                                         // r      -> Cyrcle radious for robot and target
+    // Interface options
+    int tmp;
+    p->getValue("INTERFACE_SIZE", tmp);
+    interface_size = cv::Size(tmp,tmp);             // human graphic interface size
+    p->getValue("FONT_SCALE", font_scale);
+    r = 15;                                         // r      -> Circle radius for robot and target
     offset = 18;                                    // offset -> Offset distance (some differene graphic uses)
-
-    font_scale = 0.9f;                              // Font scale for text
 
     p->getValue("BG_COLOR", backgroundColor);
     p->getValue("ARROW_COLOR", arrowColor);
@@ -23,10 +24,9 @@ Control::Control(ConfigReader *p, bool flag)
     p->getValue("LOOK_AHEAD_DIST", max_dist);               // Maximum ahead distance
     p->getValue("OBST_MIN_THRESH", low_threshold);          // Minimum height to be considered an obstacle
     p->getValue("OBST_MAX_THRESH", up_threshold);           // Maximum height to be considered an obstacle
-
-    p->getValue("OBSTACLE_GRAIN", (int&) obstacle_resolution);
+    p->getValue("OBSTACLE_LEAF", (int&) obstacle_resolution);
     
-    AStarScale = 16;
+    p->getValue("BFS_GRAIN", AStarScale);
 
     scale = interface_size.height / max_dist;         // distance scale from real [mm] to graphic interface
 
@@ -34,7 +34,7 @@ Control::Control(ConfigReader *p, bool flag)
     // cv::Mat for the graphic interface
     interface = cv::Mat(interface_size, CV_8UC3, backgroundColor);
 
-    this->flag = flag;          // If it is true, use the path planning algorithm
+    this->path_planning = flag;          // If it is true, use the path planning algorithm
 
     // Position of the robot in the graphic interface
     x_robot = interface_size.width/2;
@@ -42,7 +42,7 @@ Control::Control(ConfigReader *p, bool flag)
 
     max_row = interface.rows / AStarScale;
     max_col = interface.cols / AStarScale;
-    grid = std::vector<std::vector<AStar_cel>>(max_col, std::vector<AStar_cel>(max_row, {true, false, 1, nullptr, 0, 0}));
+    grid = AStar_mtx (max_col, std::vector<AStar_cel>(max_row, {true, false, 1, nullptr, 0, 0}));
     // for (int i = 0; i<grid.size(); i++) {
     //     for (int j = 0; j<grid[1].size(); j++) {
     //         grid[i][j].came_from = nullptr;
@@ -90,7 +90,7 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream, Plane* plane)
     there_is_an_obstacle = false;
     obstacle_finding(stream->cloud, plane);
 
-    if (!flag){
+    if (!path_planning){
 
         cv::putText(interface, "If the arrow is red there is", cv::Point(offset, offset + r), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
@@ -161,7 +161,7 @@ void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvF
     obstacle_finding(PointCloud, plane);
     
     
-    if (flag){
+    if (path_planning){
 
         cv::putText(interface, "To reach the target point,", cv::Point(offset, offset + r), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);

@@ -20,7 +20,7 @@ Plane::Plane(ConfigReader *p)
     p->getValue("PLANE_NORMAL", normal);
     p->getValue("PLANE_THRESHOLD", threshold);
     p->getValue("PLANE_ANGLE", (int&) angle);
-    p->getValue("LEAF", (int&) leaf);
+    p->getValue("PLANE_LEAF", (int&) leaf);
     p->getValue("LOOK_DOWN", look_down);
 
     // Set the segmentation object
