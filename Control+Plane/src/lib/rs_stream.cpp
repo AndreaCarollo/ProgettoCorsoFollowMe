@@ -76,7 +76,7 @@ void Stream::points_to_pcl(const rs2::points points){
 
 }
 
-void Stream::PC_acq(bool flag = false)
+void Stream::PC_acq(bool flag)
 {
     // Realsense point cloud generation (points object)
     pc.map_to(depth);

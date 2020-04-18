@@ -103,7 +103,7 @@ int main (int argc, char** argv)
     auto start_gi = std::chrono::high_resolution_clock::now();
 
     // Graphic interface for the control
-    Control ctrl = Control(p, true);
+    Control ctrl = Control(p, false);
     ctrl.update(&refPnt, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows), plane);
 
     // Stop chrono time
@@ -170,7 +170,7 @@ int main (int argc, char** argv)
     while (!viewer->wasStopped())
     {
         cv::imshow("Image",cvFrame);
-        // cv::imshow("Control",ctrl.interface);
+        cv::imshow("Control",ctrl.interface->interface);
         viewer->spinOnce (100); // wait for some microseconds, makes the viewer interactive
 
         cv::waitKey(1);

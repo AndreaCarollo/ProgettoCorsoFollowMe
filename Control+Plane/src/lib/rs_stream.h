@@ -32,7 +32,7 @@ class Stream{
         void update(rs2::frameset *frames);
         void RGB_acq();
         void IR_acq();
-        void PC_acq(bool flag);
+        void PC_acq(bool flag = false);
         void project_RGB2DEPTH(cv::Point *input);
 
     private:
