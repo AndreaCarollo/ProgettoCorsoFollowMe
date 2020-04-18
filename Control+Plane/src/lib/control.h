@@ -2,27 +2,27 @@
 #ifndef CONTROL
 #define CONTROL
 
-#include "./followme.h"
-#include "./rs_stream.h"
-#include "./segmentation.h"
-#include "./configurator.h"
+#include "followme.h"
+#include "rs_stream.h"
+#include "segmentation.h"
+#include "configurator.h"
+#include "interface.h"
 
-struct position {
-    int x;
-    int y;
-};
-
-struct AStar_cel {
-    bool free;
-    bool visited;
-    int path_lenght;
-    AStar_cel *came_from;
+struct Position {
     int row;
     int col;
 };
 
+struct AStar_cell {
+    bool free;
+    bool visited;
+    int path_lenght;
+    AStar_cell *came_from;
+    Position cell;
+};
 
-typedef std::vector< std::vector<AStar_cel> > AStar_mtx;
+
+typedef std::vector< std::vector<AStar_cell> > AStar_mtx;
 
 
 // --------------------------------------------
@@ -31,9 +31,8 @@ typedef std::vector< std::vector<AStar_cel> > AStar_mtx;
 class Control{
     public:
 
-        cv::Mat interface;
         AStar_mtx grid;
-        int AStarScale;
+        class Interface *interface;
 
         Control(ConfigReader *p, bool flag = false);
         void update(cv::Point* targetPoint2D, Stream* stream, Plane* plane);
@@ -41,41 +40,37 @@ class Control{
         
     private:
 
-        cv::Size interface_size;
-        int r, offset;
-        float font_scale;
+        Position robot, target;
         float max_dist, low_threshold, up_threshold;
         ushort obstacle_resolution;
+        int grid_size;
         float scale;
-        cv::Scalar backgroundColor, obstacleColor, targetColor, robotColor, arrowColor;
+        
 
         bool path_planning, there_is_an_obstacle;
 
-        int x_robot, y_robot;
 
-        float tmp, m;
-        int x_target,y_target;
-        int x1_arrow, x2_arrow, y1_arrow, y2_arrow;
+        float m;
+        int x1_arrow, x2_arrow, y1_arrow, y2_arrow;     // ??
 
         double dist_rt, dist_max, dist_min;
         pcl::PointXYZ tmp_pnt;
 
-        AStar_cel *start;
-        AStar_cel *stop;
+        AStar_cell *start;
+        AStar_cell *stop;
         
-        AStar_cel *up;
+        AStar_cell *up;
 
         int max_row, max_col;
 
-        std::queue<AStar_cel*> frontier;
+        std::queue<AStar_cell*> frontier;
 
         int x_rect,y_rect;
-        AStar_cel *tmp_cel, *current;
+        AStar_cell *tmp_cel, *current;
 
-        void obstacle_finding(PntCld::Ptr cloud, Plane* plane);
-        void put_arrow();
+        void path_finding(PntCld::Ptr cloud, Plane* plane);
         void A_star();
-        void neighbors(AStar_cel* current_cel);
+        void neighbors(AStar_cell* current);
 
 };
 

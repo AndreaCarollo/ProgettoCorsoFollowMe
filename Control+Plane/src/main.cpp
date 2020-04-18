@@ -16,7 +16,7 @@ using namespace std;
 int main (int argc, char** argv)
 {
     // ------------------ Configuration file ----------------- //
-
+    
     // Create the configurator object and parse conf.ini file
     ConfigReader *p = ConfigReader::getInstance();
     p->parseFile("../config.ini");
@@ -41,7 +41,6 @@ int main (int argc, char** argv)
 
     // A rectangle is put on the image as a marker
     cv::rectangle(cvFrame,cv::Point(x_cv-5,y_cv-5),cv::Point(x_cv+5,y_cv+5),cv::Scalar(0,0,255),5);
-
 
 
 
@@ -112,16 +111,16 @@ int main (int argc, char** argv)
 
 
     // Object finding test
-    for (int i = 0; i<ctrl.grid.size(); i++) {
-        for (int j = 0; j<ctrl.grid[1].size(); j++) {
-            if ( !(ctrl.grid[i][j].free) ){
+    // for (int i = 0; i<ctrl.grid.size(); i++) {
+    //     for (int j = 0; j<ctrl.grid[1].size(); j++) {
+    //         if ( !(ctrl.grid[i][j].free) ){
 
-                cv::rectangle(ctrl.interface, cv::Point(ctrl.grid[i][j].col*16, ctrl.grid[i][j].row*16), 
-                            cv::Point(ctrl.grid[i][j].col*16+16, ctrl.grid[i][j].row*16+16), cv::Scalar(0,0,255), 1);
+    //             cv::rectangle(ctrl.interface, cv::Point(ctrl.grid[i][j].col*16, ctrl.grid[i][j].row*16), 
+    //                         cv::Point(ctrl.grid[i][j].col*16+16, ctrl.grid[i][j].row*16+16), cv::Scalar(0,0,255), 1);
 
-            }
-        }
-    }
+    //         }
+    //     }
+    // }
 
     
     std::cerr << endl << "Times: " << endl;
@@ -171,7 +170,7 @@ int main (int argc, char** argv)
     while (!viewer->wasStopped())
     {
         cv::imshow("Image",cvFrame);
-        cv::imshow("Control",ctrl.interface);
+        // cv::imshow("Control",ctrl.interface);
         viewer->spinOnce (100); // wait for some microseconds, makes the viewer interactive
 
         cv::waitKey(1);

@@ -28,6 +28,7 @@ class Plane{
         pcl::SACSegmentation<pcl::PointXYZ> seg;
         pcl::ModelCoefficients::Ptr coefficients;
         Eigen::Affine3f transf_mtx;
+        
         static Plane* getInstance(ConfigReader *p);
         void update(PntCld::Ptr cloud_in);  // put it into a loop of the main
 
