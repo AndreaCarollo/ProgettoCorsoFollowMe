@@ -18,6 +18,8 @@
 // -------------Class declarations-------------
 // --------------------------------------------
 class Plane{
+    friend class Control;       // specify who can access protected elements of this class
+
     public:
         static Plane* segInstance;
         // only for debug use

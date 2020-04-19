@@ -4,28 +4,34 @@
 // --------------------------------------------
 // --------------Class functions---------------
 // --------------------------------------------
-Control::Control(ConfigReader *p, bool flag)
+Control::Control(ConfigReader *p)
 {
     p->getValue("LOOK_AHEAD_DIST", max_dist);               // Maximum ahead distance
     p->getValue("OBST_MIN_THRESH", low_threshold);          // Minimum height to be considered an obstacle
     p->getValue("OBST_MAX_THRESH", up_threshold);           // Maximum height to be considered an obstacle
+    p->getValue("OBST_TARGET_THRESH", target_threshold);           // Maximum height to be considered an obstacle
+    p->getValue("DISTANCE_THRESHOLD", distance_threshold);  // Distance from the target at which the control stops
     p->getValue("OBSTACLE_LEAF", (int&) obstacle_resolution);
     p->getValue("GRID_SIZE", grid_size);
+    p->getValue("PATH_PLANNING", path_planning);            // If path_planning is true, use the path planning algorithm 
     
     scale = grid_size / max_dist;                   // distance scale from real [mm] to grid
     robot = {grid_size-1, grid_size/2};             // position of the robot in the grid (index terms of row and column)
+
+    offset_from_targer = target_threshold*scale;    // An obstacle, to be considered, must be at least at target_threshold [mm] from the target
 
     // Set the grid
     grid = AStar_mtx (grid_size, std::vector<AStar_cell>(grid_size, {true, false, 1, nullptr, {0,0}}));
     grid[robot.row][robot.col].visited  = true;
     grid[robot.row][robot.col].cell     = robot;
 
-    this->path_planning = flag;          // If it is true, use the path planning algorithm
+    refPnt = pcl::PointXYZ(0, 0, 0);
     
     interface = Interface::getInstance(p);
+    plane = Plane::getInstance(p);
 }
 
-void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvFrameSize, Plane* plane)
+void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize)
 {
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,36 +41,45 @@ void Control::update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvF
     // plane finding and obstacle identification. We must use a correct
     // value of resolution
 
+    plane->update(PointCloud);
+
+    refPnt = PointCloud->points[(targetPoint2D->y-1)*cvFrameSize.width+targetPoint2D->x];
+    refPnt = pcl::transformPoint(refPnt, plane->transf_mtx);
+
     // update the astar grid
     // find the path (refPnt and robot position)
     // update the interface
 
     // update the astar grid
     // map the target point into the grid
-    target.row = robot.row - (refPnt->z)*scale;
-    target.col = robot.col - (refPnt->x)*scale;
+    target.row = robot.row - (refPnt.z)*scale;
+    target.col = robot.col - (refPnt.x)*scale;
+
+    distance_robot_target = std::sqrt( std::pow(refPnt.z,2) + std::pow(refPnt.x,2) );
 
     // GRAPHIC INTERFACE PRELIMINARY RENDER
     there_is_an_obstacle = false;
 
-    interface->update(refPnt);
+    interface->update(&refPnt);
 
-    obstacle_finding(PointCloud, plane);        // Search and draw the obstacles
+    obstacle_finding(PointCloud);        // Search and draw the obstacles
 
-    if (path_planning) {
+    if ( distance_robot_target >= distance_threshold ) {
+        if (path_planning) {
 
-        A_star();                               // Path planning
-        interface->put_path(grid, target);      // Draw the path
+            A_star();                               // Path planning
+            interface->put_path(grid, target);      // Draw the path
 
-    } else
-        interface->put_arrow();    // Draw an arrow from the input to the output
+        } else
+            interface->put_arrow();    // Draw an arrow from the input to the output
+    }
 
     interface->put_references();          // Draw the robot and the target position
 
 }
 
 
-void Control::update(cv::Point* targetPoint2D, Stream* stream, Plane* plane)
+void Control::update(cv::Point* targetPoint2D, Stream* stream)
 {
     stream->PC_acq();
 
@@ -77,6 +92,11 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream, Plane* plane)
 
     stream->project_RGB2DEPTH(targetPoint2D);
 
+    plane->update(stream->cloud);
+
+    refPnt = stream->cloud->points[(targetPoint2D->y-1)*stream->w_IR+targetPoint2D->x];
+    refPnt = pcl::transformPoint(refPnt, plane->transf_mtx);
+
     // update the astar grid
     // find the path (refPnt and robot position)
     // update the interface
@@ -86,27 +106,31 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream, Plane* plane)
     target.row = robot.row - (stream->refPnt.z)*scale;
     target.col = robot.col - (stream->refPnt.x)*scale;
 
+    distance_robot_target = std::sqrt( std::pow(stream->refPnt.z,2) + std::pow(stream->refPnt.x,2) );
+
     // GRAPHIC INTERFACE PRELIMINARY RENDER
     there_is_an_obstacle = false;
 
     interface->update(&(stream->refPnt));
 
-    obstacle_finding(stream->cloud, plane);        // Search and draw the obstacles
+    obstacle_finding(stream->cloud);        // Search and draw the obstacles
 
-    if (path_planning) {
+    if ( distance_robot_target >= distance_threshold ) {
+        if (path_planning) {
 
-        A_star();                               // Path planning
-        interface->put_path(grid, target);      // Draw the path
+            A_star();                               // Path planning
+            interface->put_path(grid, target);      // Draw the path
 
-    } else
-        interface->put_arrow();                 // Draw an arrow from the input to the output
+        } else
+            interface->put_arrow();                 // Draw an arrow from the input to the output
+    }
 
     interface->put_references();                // Draw the robot and the target position
 
 }
 
 
-void Control::obstacle_finding(PntCld::Ptr cloud, Plane* plane)
+void Control::obstacle_finding(PntCld::Ptr cloud)
 {
 
     for (size_t i = 0; i<cloud->size()/obstacle_resolution; i++)
@@ -133,7 +157,8 @@ void Control::obstacle_finding(PntCld::Ptr cloud, Plane* plane)
             {
                 
                 // Obstacle not attached to the target
-                if ( !( (p_row > target.row - 1 ) && (p_row < target.row + 1) && (p_col > target.col - 1) && (p_col < target.col + 1) ) )
+                if ( !( (p_row > target.row - offset_from_targer) && (p_row < target.row + offset_from_targer) && 
+                        (p_col > target.col - offset_from_targer) && (p_col < target.col + offset_from_targer) ) )
                 {
                     grid[p_row][p_col].cell.row = p_row;
                     grid[p_row][p_row].cell.col = p_col;

@@ -33,18 +33,22 @@ class Control{
 
         AStar_mtx grid;
         class Interface *interface;
+        class Plane* plane;
+        pcl::PointXYZ refPnt;
 
-        Control(ConfigReader *p, bool flag = false);
-        void update(pcl::PointXYZ* refPnt, PntCld::Ptr PointCloud, cv::Size cvFrameSize, Plane* plane);
-        void update(cv::Point* targetPoint2D, Stream* stream, Plane* plane);
+        Control(ConfigReader *p);
+        void update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize);
+        void update(cv::Point* targetPoint2D, Stream* stream);
         
     private:
 
         Position robot, target;
-        float max_dist, low_threshold, up_threshold;
+        float max_dist, low_threshold, up_threshold, target_threshold;
+        int offset_from_targer;
         ushort obstacle_resolution;
         int grid_size;
         float scale;
+        float distance_robot_target, distance_threshold;
         
         bool path_planning, there_is_an_obstacle;
 
@@ -58,7 +62,7 @@ class Control{
         int x_rect,y_rect;
         AStar_cell *current;
 
-        void obstacle_finding(PntCld::Ptr cloud, Plane* plane);
+        void obstacle_finding(PntCld::Ptr cloud);
         void A_star();
         void neighbors(AStar_cell* current);
 

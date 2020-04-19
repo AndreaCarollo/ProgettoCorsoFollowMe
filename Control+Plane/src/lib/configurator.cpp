@@ -62,6 +62,18 @@ bool ConfigReader::getValue(std::string tag, std::string& value)
     return false;
 }
 
+bool ConfigReader::getValue(std::string tag, bool& value)
+{
+    map<string, string>::iterator it;
+    it = m_ConfigSettingMap.find(tag);
+    if(it != m_ConfigSettingMap.end())
+    {
+        value = atof((it->second).c_str());
+        return true;
+    }
+    return false;
+}
+
 bool ConfigReader::getValue(std::string tag, Eigen::Vector3f& value)
 {
     map<string, string>::iterator it;

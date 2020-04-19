@@ -17,8 +17,8 @@ Interface::Interface(ConfigReader *p)
     p->getValue("ROBOT_COLOR", robotColor);
     p->getValue("TARGET_COLOR", targetColor);
     p->getValue("GRID_SIZE", gs);
+    p->getValue("RADIOUS", r);                      // Circle radius for robot and target
 
-    r = 15;                                         // r      -> Circle radius for robot and target
     offset = 18;                                    // offset -> Offset distance (some differene graphic uses)
 
     int sz;
@@ -96,9 +96,9 @@ void Interface::put_arrow()
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,0,255), 2);
     */
 
-    cv::putText(interface, "Follow the arrow to reach the", cv::Point(offset, offset + r), 
+    cv::putText(interface, "Follow the arrow to reach ", cv::Point(offset, offset + r), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);
-    cv::putText(interface, "target", cv::Point(offset, offset + r + 35 * font_scale), 
+    cv::putText(interface, "the target", cv::Point(offset, offset + r + 35 * font_scale), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);
 
     // Angulat coefficient of the rect that goes from robot to target
@@ -111,8 +111,8 @@ void Interface::put_arrow()
     y2_arrow = y_target + r + offset;
 
     // Maximum and minimum distance between robot and target
-    dist_max = sqrt((x2_arrow - x_robot)^2 + (y2_arrow - y_robot)^2);
-    dist_min = sqrt((x1_arrow - x_robot)^2 + (y1_arrow - y_robot)^2);
+    dist_max = std::sqrt( std::pow(x2_arrow - x_robot,2) + std::pow(y2_arrow - y_robot,2) );
+    dist_min = std::sqrt( std::pow(x1_arrow - x_robot,2) + std::pow(y1_arrow - y_robot,2) );
 
     // Arrow from robot to target (the arrow is shown only if the distance of the robot from the target is under a certain threshold {1 mt})
     if ( dist_min < dist_max ) {
@@ -137,7 +137,7 @@ void Interface::put_obstacle(int p_col, int p_row)
 {
 
     cv::rectangle(interface, 
-                  cv::Point(p_col*scale, p_col*scale), 
+                  cv::Point(p_col*scale, p_row*scale), 
                   cv::Point(p_col*scale+scale, p_row*scale+scale), 
                   obstacleColor, -1);
 

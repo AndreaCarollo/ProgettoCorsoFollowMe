@@ -33,6 +33,7 @@ class ConfigReader
         bool getValue(std::string tag, int& value);
         bool getValue(std::string tag, float& value);
         bool getValue(std::string tag, std::string& value);
+        bool getValue(std::string tag, bool& value);
         bool getValue(std::string tag, Eigen::Vector3f& value);
         bool getValue(std::string tag, cv::Scalar& value);
 
