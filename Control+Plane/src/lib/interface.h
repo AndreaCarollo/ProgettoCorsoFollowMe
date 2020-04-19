@@ -36,7 +36,7 @@ class Interface{
     
         void put_arrow();
         // void put_path(AStar_mtx grid, struct Position& target);
-        void put_path(std::vector< std::vector<struct AStar_cell> > grid, struct Position& target);
+        void put_path(std::vector< std::vector<struct AStar_cell> >& grid, struct Position& target);
         void put_obstacle(int p_col, int p_row);
         void put_references();
 };

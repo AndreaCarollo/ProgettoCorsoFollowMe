@@ -58,7 +58,6 @@ void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size 
     distance_robot_target = std::sqrt( std::pow(refPnt.z,2) + std::pow(refPnt.x,2) );
 
     // GRAPHIC INTERFACE PRELIMINARY RENDER
-    there_is_an_obstacle = false;
 
     interface->update(&refPnt);
 
@@ -109,7 +108,6 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
     distance_robot_target = std::sqrt( std::pow(stream->refPnt.z,2) + std::pow(stream->refPnt.x,2) );
 
     // GRAPHIC INTERFACE PRELIMINARY RENDER
-    there_is_an_obstacle = false;
 
     interface->update(&(stream->refPnt));
 

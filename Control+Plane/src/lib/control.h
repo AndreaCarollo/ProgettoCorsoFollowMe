@@ -50,7 +50,7 @@ class Control{
         float scale;
         float distance_robot_target, distance_threshold;
         
-        bool path_planning, there_is_an_obstacle;
+        bool path_planning;
 
         pcl::PointXYZ tmp_pnt;
 

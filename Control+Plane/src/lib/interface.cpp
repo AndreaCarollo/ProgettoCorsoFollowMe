@@ -60,7 +60,7 @@ void Interface::update(pcl::PointXYZ* refPnt)
 
 
 // void Interface::put_path(AStar_mtx grid, Position& target) 
-void Interface::put_path(std::vector< std::vector<struct AStar_cell> > grid, Position& target)
+void Interface::put_path(std::vector< std::vector<struct AStar_cell> >& grid, Position& target)
 {
     cv::putText(interface, "To reach the target point,", cv::Point(offset, offset + r), 
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);
@@ -69,7 +69,7 @@ void Interface::put_path(std::vector< std::vector<struct AStar_cell> > grid, Pos
 
 
 
-    tmp_cell = &(grid[target.row][target.col]);       // Starting from the target point ...
+    tmp_cell = &grid[target.row][target.col];       // Starting from the target point ...
     // ... follow the path until the starting point where the come_from pointer is NULL
 
     do {
