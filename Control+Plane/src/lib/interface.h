@@ -7,6 +7,10 @@
 #include "control.h"
 
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~ Class declarations ~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class Interface{
     friend class Control;       // specify who can access protected elements of this class
 
@@ -15,7 +19,7 @@ class Interface{
         cv::Mat interface;
 
         static Interface* getInstance(ConfigReader *p);
-        void update(class Control *ctrl);  // gets either the path or the arrow coords
+        void update(class Control *ctrl);   // gets either the path or the arrow coords
 
     private:
 
@@ -35,7 +39,6 @@ class Interface{
         Interface(const Interface& obj){}
     
         void put_arrow();
-        // void put_path(AStar_mtx grid, struct Position& target);
         void put_path(std::vector< std::vector<struct AStar_cell> >& grid, struct Position& target);
         void put_obstacle(int p_col, int p_row);
         void put_references();

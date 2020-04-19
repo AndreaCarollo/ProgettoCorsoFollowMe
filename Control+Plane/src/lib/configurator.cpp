@@ -2,6 +2,11 @@
 
 using namespace std;
 
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~ Class functions ~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 ConfigReader* ConfigReader::m_pInstance = NULL;
 
 ConfigReader::ConfigReader()

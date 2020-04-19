@@ -115,19 +115,6 @@ int main (int argc, char** argv)
     // Stop chrono time
     auto stop_gi = std::chrono::high_resolution_clock::now();
 
-
-    // Object finding test
-    // for (int i = 0; i<ctrl.grid.size(); i++) {
-    //     for (int j = 0; j<ctrl.grid[1].size(); j++) {
-    //         if ( !(ctrl.grid[i][j].free) ){
-
-    //             cv::rectangle(ctrl.interface, cv::Point(ctrl.grid[i][j].col*16, ctrl.grid[i][j].row*16), 
-    //                         cv::Point(ctrl.grid[i][j].col*16+16, ctrl.grid[i][j].row*16+16), cv::Scalar(0,0,255), 1);
-
-    //         }
-    //     }
-    // }
-
     
     std::cerr << "Times: " << endl;
 
@@ -138,7 +125,7 @@ int main (int argc, char** argv)
     // cout << endl << "Point tansformation  : " << duration_pt.count() << endl;
 
     auto duration_gi = std::chrono::duration_cast<std::chrono::microseconds>(stop_gi - start_gi);
-    cout << endl << "Graphic interface    : " << duration_gi.count() << endl;
+    cout << "Overall control algorithm :\t" << (float) duration_gi.count()/1000 << " [ms]" << endl;
 
     // Print the target point coordinate in the transformed frame
     std::cerr << endl << "Target point: " << endl
@@ -183,7 +170,6 @@ int main (int argc, char** argv)
         
         boost::this_thread::sleep (boost::posix_time::microseconds (100000));
     }
-    
     
 
     return (0);

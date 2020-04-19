@@ -25,9 +25,10 @@ struct AStar_cell {
 typedef std::vector< std::vector<struct AStar_cell> > AStar_mtx;
 
 
-// --------------------------------------------
-// -------------Class declarations-------------
-// --------------------------------------------
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~ Class declarations ~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class Control{
     friend class Interface;
     
@@ -51,6 +52,8 @@ class Control{
         int grid_size;
         float scale, look_down;
         float distance_robot_target, distance_threshold;
+
+        pcl::PointXYZ tmpPnt;
         
         bool path_planning;
 
