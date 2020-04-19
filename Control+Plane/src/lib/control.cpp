@@ -10,8 +10,8 @@ Control::Control(ConfigReader *p)
     p->getValue("LOOK_AHEAD_DIST", max_dist);                   // Maximum ahead distance
     p->getValue("OBST_MIN_THRESH", low_threshold);              // Minimum height to be considered an obstacle
     p->getValue("OBST_MAX_THRESH", up_threshold);               // Maximum height to be considered an obstacle
-    p->getValue("OBST_TARGET_THRESH", target_threshold);        // Maximum height to be considered an obstacle
-    p->getValue("DISTANCE_THRESHOLD", distance_threshold);      // Distance from the target at which the control stops
+    p->getValue("TARGET_THRESH", target_threshold);             // Maximum height to be considered an obstacle
+    p->getValue("STOP_DISTANCE", distance_threshold);           // Distance from the target at which the control stops
     p->getValue("OBSTACLE_LEAF", (int&) obstacle_resolution);   // Resolution with which the obstacles are searched
     p->getValue("GRID_SIZE", grid_size);                        // Size of the grid of the path planning
     p->getValue("PATH_PLANNING", path_planning);                // If path_planning is true, use the path planning algorithm 
@@ -109,46 +109,21 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
 {
 
     for (size_t i = look_down*cloud->size(); i<cloud->size(); i += obstacle_resolution)
-    {
-        /*
-        // The point of the cloud must be transformed by the plene transformation mtx (~7.5 ms)
-        tmpPnt = cloud->points[i];
-        tmpPnt = pcl::transformPoint(tmpPnt, plane->transf_mtx);
-        */
-        
-        // We can decide to compute the y of the plane connected to the x and z of the point (~6.5 ms)
-        float y_pnt = - (plane->coefficients->values[0] * cloud->points[i].x + 
-                         plane->coefficients->values[2] * cloud->points[i].z + 
-                         plane->coefficients->values[3] ) /
-                         plane->coefficients->values[1];
-        float d = cloud->points[i].y - y_pnt;
-        
-        /*
+    {        
         // Considering that the plane is the one in which lives the robot, all the points
         // that do not be in this plane are obstacles, in principle (~5.5 ms)
-        float d = abs(-plane->coefficients->values[0] * cloud->points[i].x +
-                       plane->coefficients->values[1] * cloud->points[i].y -
-                       plane->coefficients->values[2] * cloud->points[i].z +
-                       plane->coefficients->values[3]) /
-                    std::sqrt(std::pow(plane->coefficients->values[0],2) + 
-                              std::pow(plane->coefficients->values[1],2) + 
-                              std::pow(plane->coefficients->values[2],2));
-        */
+        float d = abs(plane->coefficients->values[0] * cloud->points[i].x +
+                    plane->coefficients->values[1] * cloud->points[i].y +
+                    plane->coefficients->values[2] * cloud->points[i].z +
+                    plane->coefficients->values[3]);
         
                 
         // if ( tmpPnt.y > low_threshold && tmpPnt.y < up_threshold )      // If we use the transformed points
         if ( d > low_threshold && d < up_threshold )                    // If we use the point/plane distance or the difference in y
         {
-            /*
-            // If we use the transformed points
-            int p_row = robot.row - (tmpPnt.z)*scale;
-            int p_col = robot.col - (tmpPnt.x)*scale;
-            */
-            
             // If we use the point/plane distance or the difference in y
             int p_row = robot.row - (cloud->points[i].z)*scale;
             int p_col = robot.col - (cloud->points[i].x)*scale;
-            
 
             if (p_row >= 0 && p_col >= 0 && p_row < grid_size && p_col < grid_size)     // Obstacle inside the grid
             {

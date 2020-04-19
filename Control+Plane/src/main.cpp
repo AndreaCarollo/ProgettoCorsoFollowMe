@@ -158,7 +158,7 @@ int main (int argc, char** argv)
     PCViewer(ctrl.plane->easy_cloud, viewer);
     viewer->addPointCloud(ctrl.plane->plane_cloud, color_handler);
     viewer->addCoordinateSystem(1000, "RF_plane");
-    viewer->addCoordinateSystem(1000, ctrl.plane->transf_mtx, "RF_cam");
+    // viewer->addCoordinateSystem(1000, ctrl.plane->transf_mtx, "RF_cam");
     
     while (!viewer->wasStopped())
     {

@@ -50,18 +50,19 @@ Plane* Plane::getInstance(ConfigReader *parser)
 void Plane::setTransfMtx()
 {
     float n1  = -coefficients->values[0];
-    float n2  = coefficients->values[1];
+    float n2  = -coefficients->values[1];
     float n3  = -coefficients->values[2];
     float den = sqrt(pow(n2,2)+pow(n3,2));
 
     // Set the transformation object
     transf_mtx (0,0) = den;
-    transf_mtx (1,0) = -n2*n1/den;
-    transf_mtx (2,0) = -n3*n1/den;
-    transf_mtx (0,1) = -n1;
-    transf_mtx (1,1) = -n2;
-    transf_mtx (2,1) = -n3;
-    transf_mtx (1,2) = n3/den;   
+    transf_mtx (1,0) = n1;
+    transf_mtx (0,1) = -n2*n1/den;
+    transf_mtx (1,1) = n2;
+    transf_mtx (2,1) = -n3/den;
+    transf_mtx (0,2) = -n3*n1/den;
+    transf_mtx (1,2) = n3;
+    transf_mtx (2,2) = n2/den;
     transf_mtx (1,3) = -coefficients->values[3];
 }
 
@@ -85,7 +86,7 @@ void Plane::update(PntCld::Ptr cloud_in)
     seg.segment (*inliers, *coefficients);
     if(inliers->indices.size() == 0)            // break the code if plane is not found
         return;
-    
+
     setTransfMtx();
     
     // Create the filtering object
