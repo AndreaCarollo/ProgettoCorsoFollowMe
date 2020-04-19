@@ -14,6 +14,7 @@ Control::Control(ConfigReader *p)
     p->getValue("OBSTACLE_LEAF", (int&) obstacle_resolution);
     p->getValue("GRID_SIZE", grid_size);
     p->getValue("PATH_PLANNING", path_planning);            // If path_planning is true, use the path planning algorithm 
+    p->getValue("OBST_LOOK_DOWN", look_down);
     
     scale = grid_size / max_dist;                   // distance scale from real [mm] to grid
     robot = {grid_size-1, grid_size/2};             // position of the robot in the grid (index terms of row and column)
@@ -59,21 +60,21 @@ void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size 
 
     // GRAPHIC INTERFACE PRELIMINARY RENDER
 
-    interface->update(&refPnt);
+    interface->clean();
 
-    obstacle_finding(PointCloud);        // Search and draw the obstacles
+    obstacle_finding(PointCloud);        // Search and draw the obstacles into the interface and grid too
 
-    if ( distance_robot_target >= distance_threshold ) {
-        if (path_planning) {
-
+    if ( distance_robot_target >= distance_threshold )
+        if (path_planning)
             A_star();                               // Path planning
-            interface->put_path(grid, target);      // Draw the path
+    //         interface->put_path(grid, target);      // Draw the path
 
-        } else
-            interface->put_arrow();    // Draw an arrow from the input to the output
-    }
+    //     } else
+    //         interface->put_arrow();    // Draw an arrow from the input to the output
+    // }
 
-    interface->put_references();          // Draw the robot and the target position
+    // // interface->put_references();          // Draw the robot and the target position
+    interface->update(this);
 
 }
 
@@ -109,21 +110,21 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 
     // GRAPHIC INTERFACE PRELIMINARY RENDER
 
-    interface->update(&(stream->refPnt));
+    interface->clean();
 
-    obstacle_finding(stream->cloud);        // Search and draw the obstacles
+    obstacle_finding(stream->cloud);        // Search and draw the obstacles into the interface and grid too
 
-    if ( distance_robot_target >= distance_threshold ) {
-        if (path_planning) {
-
+    if ( distance_robot_target >= distance_threshold )
+        if (path_planning)
             A_star();                               // Path planning
-            interface->put_path(grid, target);      // Draw the path
+    //         interface->put_path(grid, target);      // Draw the path
 
-        } else
-            interface->put_arrow();                 // Draw an arrow from the input to the output
-    }
+    //     } else
+    //         interface->put_arrow();    // Draw an arrow from the input to the output
+    // }
 
-    interface->put_references();                // Draw the robot and the target position
+    // // interface->put_references();          // Draw the robot and the target position
+    interface->update(this);
 
 }
 
@@ -131,16 +132,15 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 void Control::obstacle_finding(PntCld::Ptr cloud)
 {
 
-    for (size_t i = 0; i<cloud->size()/obstacle_resolution; i++)
+    for (size_t i = look_down*cloud->size(); i<cloud->size(); i += obstacle_resolution)
     {
 
         // Considering that the plane is the one in which lives the robot, all the points
         // that do not be in this plane are obstacles, in principle
-        tmp_pnt = cloud->points[obstacle_resolution*i];
         
-        int d = abs(plane->coefficients->values[0] * tmp_pnt.x +
-                    plane->coefficients->values[1] * tmp_pnt.y +
-                    plane->coefficients->values[2] * tmp_pnt.z +
+        int d = abs(plane->coefficients->values[0] * cloud->points[i].x +
+                    plane->coefficients->values[1] * cloud->points[i].y +
+                    plane->coefficients->values[2] * cloud->points[i].z +
                     plane->coefficients->values[3]) /
                     std::sqrt(std::pow(plane->coefficients->values[0],2) + 
                               std::pow(plane->coefficients->values[1],2) + 
@@ -148,8 +148,8 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
         
         if ( d > low_threshold && d < up_threshold )
         {
-            int p_row = robot.row - (tmp_pnt.z)*scale;
-            int p_col = robot.col - (tmp_pnt.x)*scale;
+            int p_row = robot.row - (cloud->points[i].z)*scale;
+            int p_col = robot.col - (cloud->points[i].x)*scale;
 
             if (p_row >= 0 && p_col >= 0 && p_row < grid_size && p_col < grid_size)     // Obstacle inside the grid
             {
@@ -175,12 +175,12 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
 void Control::A_star()
 {
 
-    start = &grid[robot.row][robot.col];
+    current = &grid[robot.row][robot.col];  // the starting point
 
     // Set the target point in the grid
     // grid[target.row][target.col].cell = target;
     
-    frontier.push(start);
+    frontier.push(current);
 
     do {
         current = frontier.front();

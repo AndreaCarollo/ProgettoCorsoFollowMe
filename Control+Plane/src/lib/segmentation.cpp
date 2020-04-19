@@ -21,7 +21,7 @@ Plane::Plane(ConfigReader *p)
     p->getValue("PLANE_THRESHOLD", threshold);
     p->getValue("PLANE_ANGLE", (int&) angle);
     p->getValue("PLANE_LEAF", (int&) leaf);
-    p->getValue("LOOK_DOWN", look_down);
+    p->getValue("PLANE_LOOK_DOWN", look_down);
 
     // Set the segmentation object
     seg.setModelType (pcl::SACMODEL_PERPENDICULAR_PLANE);

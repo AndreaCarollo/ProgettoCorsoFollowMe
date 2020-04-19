@@ -29,6 +29,8 @@ typedef std::vector< std::vector<struct AStar_cell> > AStar_mtx;
 // -------------Class declarations-------------
 // --------------------------------------------
 class Control{
+    friend class Interface;
+    
     public:
 
         AStar_mtx grid;
@@ -47,19 +49,13 @@ class Control{
         int offset_from_targer;
         ushort obstacle_resolution;
         int grid_size;
-        float scale;
+        float scale, look_down;
         float distance_robot_target, distance_threshold;
         
         bool path_planning;
 
-        pcl::PointXYZ tmp_pnt;
-
-        AStar_cell *start;
-        AStar_cell *stop;
-
         std::queue<AStar_cell*> frontier;
 
-        int x_rect,y_rect;
         AStar_cell *current;
 
         void obstacle_finding(PntCld::Ptr cloud);

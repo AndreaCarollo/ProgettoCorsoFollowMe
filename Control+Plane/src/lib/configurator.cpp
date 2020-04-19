@@ -111,6 +111,25 @@ bool ConfigReader::getValue(std::string tag, cv::Scalar& value)
     return false;
 }
 
+bool ConfigReader::getValue(std::string tag, cv::Size& value)
+{
+    map<string, string>::iterator it;
+    it = m_ConfigSettingMap.find(tag);
+    ushort strBegin = 0, strEnd = 0;
+    if(it != m_ConfigSettingMap.end())
+    {
+        for (ushort i=0; i<2; i++)
+        {
+            strEnd = it->second.find_first_of(",", strBegin);
+            value.width = atoi(trim(it->second.substr(strBegin, strEnd - strBegin)).c_str());
+            strBegin = strEnd+1;
+        }
+        value.height = value.width;
+        return true;
+    }
+    return false;
+}
+
 bool ConfigReader::parseFile(string fileName)
 {
     ifstream inputFile;

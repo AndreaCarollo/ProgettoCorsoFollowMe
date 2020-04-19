@@ -137,7 +137,7 @@ int main (int argc, char** argv)
     // auto duration_pt = std::chrono::duration_cast<std::chrono::milliseconds>(stop_pt - start_pt);
     // cout << endl << "Point tansformation  : " << duration_pt.count() << endl;
 
-    auto duration_gi = std::chrono::duration_cast<std::chrono::milliseconds>(stop_gi - start_gi);
+    auto duration_gi = std::chrono::duration_cast<std::chrono::microseconds>(stop_gi - start_gi);
     cout << endl << "Graphic interface    : " << duration_gi.count() << endl;
 
     // Print the target point coordinate in the transformed frame

@@ -17,21 +17,15 @@ Interface::Interface(ConfigReader *p)
     p->getValue("ROBOT_COLOR", robotColor);
     p->getValue("TARGET_COLOR", targetColor);
     p->getValue("GRID_SIZE", gs);
-    p->getValue("RADIOUS", r);                      // Circle radius for robot and target
-
-    offset = 18;                                    // offset -> Offset distance (some differene graphic uses)
-
-    int sz;
-    p->getValue("INTERFACE_SIZE", sz);
-    interface_size = cv::Size(sz,sz);           // human graphic interface size
+    p->getValue("RADIUS", r);                      // Circle radius for robot and target
+    p->getValue("OFFSET", offset);                 // offset -> Offset distance (some differene graphic uses)
+    p->getValue("INTERFACE_SIZE", interface_size);           // human graphic interface size
 
     interface = cv::Mat(interface_size, CV_8UC3, backgroundColor);
 
-    x_robot = interface.cols/2;           // Position of the robot in the graphic interface
-    y_robot = interface.rows - offset;
+    robot = cv::Point(interface.cols/2, interface.rows - offset);           // Position of the robot in the graphic interface
 
-    scale = sz/gs;
-    transf = sz/max_dist;
+    scale = interface_size.width/gs;
 
 }
 
@@ -47,14 +41,16 @@ Interface* Interface::getInstance(ConfigReader *parser)
     return interfInstance;
 }
 
-void Interface::update(pcl::PointXYZ* refPnt)
+void Interface::update(Control *ctrl)
 {
-    // Clean the interface matrix
-    interface.release();
-    interface = cv::Mat(interface_size, CV_8UC3, backgroundColor);
+    target = cv::Point(ctrl->target.col*scale,
+                        ctrl->target.row*scale);
 
-    x_target = x_robot - (refPnt->x)*transf;
-    y_target = y_robot - (refPnt->z)*transf;
+    if (ctrl->path_planning)
+        put_path(ctrl->grid, ctrl->target);
+    else
+        put_arrow();
+    put_references();
 
 }
 
@@ -78,7 +74,7 @@ void Interface::put_path(std::vector< std::vector<struct AStar_cell> >& grid, Po
          int y_rect = tmp_cell->cell.row * scale;
 
          cv::rectangle(interface, 
-                       cv::Point(x_rect,y_rect), cv::Point(x_rect+scale,y_rect+scale), 
+                       cv::Point(x_rect-scale/2,y_rect-scale/2), cv::Point(x_rect+scale/2-1,y_rect+scale/2-1), 
                        arrowColor, -1);
 
         tmp_cell = tmp_cell->came_from;
@@ -102,23 +98,20 @@ void Interface::put_arrow()
                     cv::FONT_HERSHEY_SIMPLEX, font_scale, arrowColor, 2);
 
     // Angulat coefficient of the rect that goes from robot to target
-    m = (float)((y_target-y_robot)/(x_target-x_robot));
+    m = (float)((target.y - robot.y)/(target.x - robot.x));
 
     // Arrow starting and final point coordinates
-    x1_arrow = - (r + offset) / m + x_robot;
-    y1_arrow = y_robot - r - offset;
-    x2_arrow = (r + offset) / m + x_target;
-    y2_arrow = y_target + r + offset;
+    arrow_tail = cv::Point (-(r + offset) / m + robot.x, robot.y - r - offset);
+    arrow_head = cv::Point ((r + offset) / m + target.x, target.y + r + offset);
 
     // Maximum and minimum distance between robot and target
-    dist_max = std::sqrt( std::pow(x2_arrow - x_robot,2) + std::pow(y2_arrow - y_robot,2) );
-    dist_min = std::sqrt( std::pow(x1_arrow - x_robot,2) + std::pow(y1_arrow - y_robot,2) );
+    dist_max = std::sqrt( std::pow(arrow_head.x - robot.x,2) + std::pow(arrow_head.y - robot.y,2) );
+    dist_min = std::sqrt( std::pow(arrow_tail.x - robot.x,2) + std::pow(arrow_tail.y - robot.y,2) );
 
     // Arrow from robot to target (the arrow is shown only if the distance of the robot from the target is under a certain threshold {1 mt})
     if ( dist_min < dist_max ) {
 
-        cv::arrowedLine(interface, cv::Point(x1_arrow, y1_arrow), cv::Point(x2_arrow, y2_arrow),
-                        arrowColor, 5);
+        cv::arrowedLine(interface, arrow_tail, arrow_head, arrowColor, 5);
 
         /*
         if ( true ){
@@ -137,8 +130,8 @@ void Interface::put_obstacle(int p_col, int p_row)
 {
 
     cv::rectangle(interface, 
-                  cv::Point(p_col*scale, p_row*scale), 
-                  cv::Point(p_col*scale+scale, p_row*scale+scale), 
+                  cv::Point(p_col*scale-scale/2, p_row*scale-scale/2), 
+                  cv::Point(p_col*scale+scale/2-1, p_row*scale+scale/2-1), 
                   obstacleColor, -1);
 
 }
@@ -147,16 +140,22 @@ void Interface::put_references()
 {
 
     // Circle for the robot position
-    cv::circle(interface, cv::Point(x_robot,y_robot), r, robotColor, cv::FILLED, cv::LINE_8);
+    cv::circle(interface, robot, r, robotColor, cv::FILLED, cv::LINE_8);
     cv::circle(interface, cv::Point(interface_size.width - offset,offset), r, robotColor,  cv::FILLED, cv::LINE_8);
     cv::putText(interface, "Robot", cv::Point(interface_size.width - offset - r - 140, offset + r), 
                 cv::FONT_HERSHEY_SIMPLEX, font_scale, robotColor, 2);
 
     // Green cyrcle for the target postion
-    cv::circle(interface, cv::Point(x_target,y_target), r, targetColor, cv::FILLED, cv::LINE_8);
+    cv::circle(interface, target, r, targetColor, cv::FILLED, cv::LINE_8);
     cv::circle(interface, cv::Point(interface_size.width - offset,2 * offset + 2 * r), r, targetColor, cv::FILLED, cv::LINE_8);
     cv::putText(interface, "Target", cv::Point(interface_size.width - offset - r - 140, 2 * offset + 3 * r), 
                 cv::FONT_HERSHEY_SIMPLEX, font_scale, targetColor, 2);
 
+}
 
+void Interface::clean()
+{
+    // Clean the interface matrix
+    interface.release();
+    interface = cv::Mat(interface_size, CV_8UC3, backgroundColor);
 }
