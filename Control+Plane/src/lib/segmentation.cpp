@@ -17,7 +17,9 @@ Plane::Plane(ConfigReader *p)
     transf_mtx = Eigen::Affine3f::Identity();
 
     // Internal parameters from the configurator
-    p->getValue("RANSAC_MAX_ITER", tries);
+    p->getValue("RANSAC_MAX_ITER", max_tries);
+    p->getValue("RANSAC_MIN_ITER", min_tries); tries = min_tries;
+    p->getValue("DELTA_FACTOR", incrementFactor);
     p->getValue("PLANE_NORMAL", normal);
     p->getValue("PLANE_THRESHOLD", threshold);
     p->getValue("PLANE_ANGLE", (int&) angle);
@@ -85,9 +87,19 @@ void Plane::update(PntCld::Ptr cloud_in)
     seg.setInputCloud (easy_cloud);
     seg.segment (*inliers, *coefficients);
     if(inliers->indices.size() == 0)            // break the code if plane is not found
+    {
+        tries = (tries > max_tries) ? tries : tries*incrementFactor;
         return;
+    }
+    
+    tries = (tries < min_tries) ? tries : tries/incrementFactor;
 
     setTransfMtx();
+
+    // Update normal for next search
+    normal[0] = coefficients->values[0];
+    normal[1] = coefficients->values[1];
+    normal[2] = coefficients->values[2];
     
     // Create the filtering object
     pcl::ExtractIndices<pcl::PointXYZ> extract;     // still thr bcs is for debug only

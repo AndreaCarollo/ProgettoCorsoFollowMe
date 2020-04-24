@@ -147,7 +147,6 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
                     plane->coefficients->values[3]);
         
                 
-        // if ( tmpPnt.y > low_threshold && tmpPnt.y < up_threshold )      // If we use the transformed points
         if ( d > low_threshold && d < up_threshold )                    // If we use the point/plane distance or the difference in y
         {
             // If we use the point/plane distance or the difference in y

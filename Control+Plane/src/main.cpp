@@ -19,7 +19,7 @@ int main (int argc, char** argv)
     
     // Create the configurator object and parse conf.ini file
     ConfigReader *p = ConfigReader::getInstance();
-    p->parseFile("../config.ini");
+    p->parseFile((char *) argv[1]);
 
 
     // SOME INITIALIZATIONS
@@ -53,7 +53,7 @@ int main (int argc, char** argv)
     // START THE STREAM
 
     // Add desired streams to configuration
-    cfg.enable_device_from_file((char *) argv[1]);    // Enable stream from a recordered device (.bag file)
+    cfg.enable_device_from_file((char *) argv[2]);    // Enable stream from a recordered device (.bag file)
     // Configure and start the pipeline
     pipe.start(cfg);
 
@@ -129,7 +129,7 @@ int main (int argc, char** argv)
                         1.0,0.0,0.0);
 
         PCViewer(stream.cloud, viewer);
-        // viewer->addPointCloud(ctrl.plane->plane_cloud, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(stream.cloud, 0, 255, 0),"Plane");
+        viewer->addPointCloud(ctrl.plane->plane_cloud, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(stream.cloud, 0, 255, 0),"Plane");
         // viewer->addCoordinateSystem(1000, "RF_plane");
         // viewer->addCoordinateSystem(1000, ctrl.plane->transf_mtx, "RF_cam");
 
@@ -142,7 +142,7 @@ int main (int argc, char** argv)
 
         // Remove the point cloud from the viewer
         viewer -> removePointCloud("sample cloud");
-        // viewer -> removePointCloud("Plane");         // this gives segmentation when no plane is found! anyway is only for debug
+        viewer -> removePointCloud("Plane");         // this gives segmentation when no plane is found! anyway is only for debug
         viewer -> removeShape("cube");
         viewer -> removeAllCoordinateSystems();
 

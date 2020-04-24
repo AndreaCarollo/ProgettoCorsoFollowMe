@@ -28,9 +28,9 @@ class Plane{
         void update(PntCld::Ptr cloud_in);  // put it into a loop of the main
 
     private:
-        int tries;
+        int tries, max_tries, min_tries;
         Eigen::Vector3f normal;
-        float threshold;
+        float threshold, incrementFactor;
         ushort angle;
         ushort leaf;
         float look_down;
