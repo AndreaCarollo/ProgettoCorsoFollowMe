@@ -21,155 +21,139 @@ int main (int argc, char** argv)
     ConfigReader *p = ConfigReader::getInstance();
     p->parseFile("../config.ini");
 
-    // ushort leaf;
-    // p->getValue("LEAF", (int&) leaf);
 
-    
+    // SOME INITIALIZATIONS
 
+    // Create a configuration for configuring the pipeline with a non default profile
+    rs2::config cfg;
+    rs2::frameset frames;
 
-    // ------------------ OpenCV Part ----------------------- //
+    // Create a Pipeline for the data acquisition from the camera
+    rs2::pipeline pipe;
 
-    // The image is read (This image corresponds to the .ply file)
-    cv::Mat cvFrame = cv::imread("../test.png");
-
-    // Target point choosing
-    float y_rel = 0.5, x_rel = 0.46;
-    int y_cv = cvFrame.rows * y_rel;
-    int x_cv = cvFrame.cols * x_rel;
-
-    cv::Point target_point = cv::Point(x_cv, y_cv);
-
-    // A rectangle is put on the image as a marker
-    cv::rectangle(cvFrame,cv::Point(x_cv-5,y_cv-5),cv::Point(x_cv+5,y_cv+5),cv::Scalar(0,0,255),5);
-
-
-
-
-    // ----------------- Plane Identification --------------- //
-
-    PntCld::Ptr cloud_blob (new PntCld);
-    PntCld::Ptr cloud_tmp (new PntCld);
+    // initialize the viewer for the point cloud
     PntCldV::Ptr viewer(new PntCldV ("3D Viewer"));
-    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(cloud_blob, 0, 255, 0);
-    pcl::PLYReader reader;
-    pcl::PLYWriter writer;
-    std::stringstream ss;
 
-    // Fill in the cloud data
-    reader.read ("../test.ply", *cloud_blob);
-
-    // OBSOLETE: It is done inside Control
-    /*
-    auto start_plane = std::chrono::high_resolution_clock::now();
-    
-    // Initialize plane object and pass to it the configurator
-    Plane *plane = Plane::getInstance(p);
-    
-    // Call the update method, to be put in a loop
-    plane->update(cloud_blob);
-
-    auto stop_plane = std::chrono::high_resolution_clock::now();
-    */
-
-    // If we pass to the progam also an argument, we can test if there are any 
-    // obstacle between the robot and the camera 
-    if (argv[1] != NULL){
-        // We create a whall on the "trajectory" that simulate an obstacle
-        float x_start = -700.0;
-        float y_start = -800.0;
-        pcl::PointXYZ Point;
-
-        for (int i = 0; i < 500; i++){
-            for (int j = 0; j < 20; j++){
-                Point.x = x_start+5*i;
-                Point.y = y_start+5*j;
-                Point.z = 1500.0;
-                cloud_blob->points.push_back(Point);
-            }
-        }
-    }
-
-    // ----------------Control Part -------------------------- //
-
-    // OBSOLETE: It is done inside Control
-    /*
-    // Create the point in which we store the 3D position of the target
-    pcl::PointXYZ refPnt;
-    refPnt = cloud_blob->points[(y_cv-1)*cvFrame.cols+x_cv];
-
-    // auto start_pt = std::chrono::high_resolution_clock::now();
-
-    // Apply the transformation also to the cloud point with the terget point only
-    refPnt = pcl::transformPoint(refPnt, plane->transf_mtx);
-
-    auto stop_pt = std::chrono::high_resolution_clock::now();
-    */
-
-    // Start chrono time
-    auto start_gi = std::chrono::high_resolution_clock::now();
-
-    // Graphic interface for the control
-    Control ctrl = Control(p);
-    ctrl.update(&target_point, cloud_blob, cv::Size(cvFrame.cols, cvFrame.rows));
-
-    // Stop chrono time
-    auto stop_gi = std::chrono::high_resolution_clock::now();
-
-    
-    std::cerr << "Times: " << endl;
-
-    // auto duration_plane = std::chrono::duration_cast<std::chrono::milliseconds>(stop_plane - start_plane);
-    // cout << endl << "Plane finding        : " << duration_plane.count() << endl;
-
-    // auto duration_pt = std::chrono::duration_cast<std::chrono::milliseconds>(stop_pt - start_pt);
-    // cout << endl << "Point tansformation  : " << duration_pt.count() << endl;
-
-    auto duration_gi = std::chrono::duration_cast<std::chrono::microseconds>(stop_gi - start_gi);
-    cout << "Overall control algorithm :\t" << (float) duration_gi.count()/1000 << " [ms]" << endl;
-
-    // Print the target point coordinate in the transformed frame
-    std::cerr << endl << "Target point: " << endl
-              << "x = " << ctrl.refPnt.x << endl
-              << "y = " << ctrl.refPnt.y << endl
-              << "z = " << ctrl.refPnt.z << endl;
-
-
-
-
-
-    // --------------- Rappresentation part ------------------ //
-
-    // Add a cube to the visualizer that works as a marker
-    viewer->addCube(ctrl.refPnt.x-30,ctrl.refPnt.x+30,
-                    ctrl.refPnt.y-30,ctrl.refPnt.y+30,
-                    ctrl.refPnt.z-30,ctrl.refPnt.z+30,
-                    1.0,0.0,0.0);
-
-    // Apply transformation mtx to plane and pcl
-    pcl::transformPointCloud(*cloud_blob, *cloud_tmp, ctrl.plane->transf_mtx);
-                             cloud_blob.swap (cloud_tmp);
-    pcl::transformPointCloud(*ctrl.plane->easy_cloud, *cloud_tmp, ctrl.plane->transf_mtx);
-                            ctrl.plane->easy_cloud.swap (cloud_tmp);
-    pcl::transformPointCloud(*ctrl.plane->plane_cloud, *cloud_tmp, ctrl.plane->transf_mtx);
-                             ctrl.plane->plane_cloud.swap (cloud_tmp);
-
-    // All the point clouds are added to the visualizer
+    // The camera of the viewer is "initialized"
     viewer->initCameraParameters();
-    PCViewer(ctrl.plane->easy_cloud, viewer);
-    viewer->addPointCloud(ctrl.plane->plane_cloud, color_handler);
-    viewer->addCoordinateSystem(1000, "RF_plane");
-    // viewer->addCoordinateSystem(1000, ctrl.plane->transf_mtx, "RF_cam");
-    
-    while (!viewer->wasStopped())
+
+    // Others - OPENCV
+    int x_cv, y_cv;
+    float x_rel, y_rel;
+    cv::Point target_point;
+
+    // Others - CONTROL
+    Control ctrl = Control(p);      // INITIALIZATION OF THE CONTROL CLASS
+
+    // Others
+    PntCld::Ptr cloud_tmp;
+    std::vector<float> durations_control, durations_rgb_acq;
+
+
+    // START THE STREAM
+
+    // Add desired streams to configuration
+    cfg.enable_device_from_file((char *) argv[1]);    // Enable stream from a recordered device (.bag file)
+    // Configure and start the pipeline
+    pipe.start(cfg);
+
+    //Call the class Stream
+    std::string stream_name = "Realsense stream";
+    frames = pipe.wait_for_frames();                   // The first frame is used to initialize the class stream only
+    Stream stream(stream_name, &frames);
+
+
+    // LOOP
+    // while(cv::waitKey(1) != 27)
+    while(!viewer->wasStopped()) // If the ESC button is pressed, the cycle is stopped and the program finishes
     {
-        cv::imshow("Image",cvFrame);
+        
+        frames = pipe.wait_for_frames();
+        stream.update(&frames);
+
+
+        // ------------------ OpenCV Part ----------------------- //
+
+        auto start_rgb_acq = std::chrono::high_resolution_clock::now();
+
+        // Load the images from the camera and convert it in cv::Mat
+        stream.RGB_acq();
+
+        auto stop_rgb_acq = std::chrono::high_resolution_clock::now();
+        auto duration_rgb_acq = std::chrono::duration_cast<std::chrono::microseconds>(stop_rgb_acq - start_rgb_acq);
+
+        durations_rgb_acq.push_back((float) duration_rgb_acq.count()/1000);
+
+        // Target point choosing
+        y_rel = 0.5;                                    x_rel = 0.4;
+        y_cv = stream.color_frame.rows * y_rel;         x_cv = stream.color_frame.cols * x_rel;
+
+        // A rectangle is put on the image as a marker
+        target_point = cv::Point(x_cv, y_cv);
+        cv::rectangle(stream.color_frame,cv::Point(x_cv-5,y_cv-5),cv::Point(x_cv+5,y_cv+5),cv::Scalar(0,0,255),5);
+
+
+        // ---------------- Control Part ------------------------ //
+
+        auto start_control = std::chrono::high_resolution_clock::now();
+
+        // Update the control -> all other operation are called inside the update
+        ctrl.update(&target_point, &stream);
+
+        auto stop_control = std::chrono::high_resolution_clock::now();
+        auto duration_control = std::chrono::duration_cast<std::chrono::microseconds>(stop_control - start_control);
+
+        durations_control.push_back((float) duration_control.count()/1000 - (float) ctrl.duration.count()/1000);
+
+        // NOTE: Since the .bag file that we consider does not have a plane, we must add a plane every frame.
+        //       The time emploied to add the plane is removed from the control algorithm time.
+        //       When we want to use the control in a real application we must remove some initializations in 
+        //       "control.h" and the plane adding in "control.cpp -> update(cv::Point* , Stream* )"
+
+
+        // ---------------- Visualization Part ------------------ //
+
+        /* // Does not work
+        // Apply transformation mtx to plane and pcl
+        pcl::transformPointCloud(*stream.cloud, *cloud_tmp, ctrl.plane->transf_mtx);
+        stream.cloud.swap (cloud_tmp);
+
+        pcl::transformPointCloud(*ctrl.plane->plane_cloud, *cloud_tmp, ctrl.plane->transf_mtx);
+        ctrl.plane->plane_cloud.swap (cloud_tmp);
+        */
+
+        // Add a cube to the visualizer that works as a marker
+        viewer->addCube(ctrl.refPnt.x-0.030,ctrl.refPnt.x+0.030,
+                        ctrl.refPnt.y-0.030,ctrl.refPnt.y+0.030,
+                        ctrl.refPnt.z-0.030,ctrl.refPnt.z+0.030,
+                        1.0,0.0,0.0);
+
+        PCViewer(stream.cloud, viewer);
+        // viewer->addPointCloud(ctrl.plane->plane_cloud, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(stream.cloud, 0, 255, 0),"Plane");
+        // viewer->addCoordinateSystem(1000, "RF_plane");
+        // viewer->addCoordinateSystem(1000, ctrl.plane->transf_mtx, "RF_cam");
+
+
+        cv::imshow("Image",stream.color_frame);
         cv::imshow("Control",ctrl.interface->interface);
         viewer->spinOnce (100); // wait for some microseconds, makes the viewer interactive
 
         cv::waitKey(1);
-        
-        boost::this_thread::sleep (boost::posix_time::microseconds (100000));
+
+        // Remove the point cloud from the viewer
+        viewer -> removePointCloud("sample cloud");
+        // viewer -> removePointCloud("Plane");         // this gives segmentation when no plane is found! anyway is only for debug
+        viewer -> removeShape("cube");
+        viewer -> removeAllCoordinateSystems();
+
     }
+
+    float t_rgb_acq = accumulate( durations_rgb_acq.begin(), durations_rgb_acq.end(), 0.0/ durations_rgb_acq.size());
+    float t_control = accumulate( durations_control.begin(), durations_control.end(), 0.0/ durations_control.size());
+
+    cout << "Timing :"                                              << endl;
+    cout << "   RGB acquisition time   :  " << t_rgb_acq << "\t[ms]" << endl;
+    cout << "   Control algorithm time :  " << t_control << "\t[ms]" << endl;
     
 
     return (0);

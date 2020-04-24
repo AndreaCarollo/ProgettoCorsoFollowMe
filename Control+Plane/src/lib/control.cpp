@@ -22,15 +22,17 @@ Control::Control(ConfigReader *p)
 
     offset_from_targer = target_threshold*scale;                // An obstacle, to be considered, must be at least at target_threshold [mm] from the target
 
-    // Set the grid
-    grid = AStar_mtx (grid_size, std::vector<AStar_cell>(grid_size, {true, false, 1, nullptr, {0,0}}));
-    grid[robot.row][robot.col].visited  = true;
-    grid[robot.row][robot.col].cell     = robot;
-
     refPnt = pcl::PointXYZ(0, 0, 0);                            // Reference point inizialization
     
     interface = Interface::getInstance(p);                      // Interface class initialization
     plane = Plane::getInstance(p);                              // Plane class initialization
+
+
+    // ~~~~~~~~~~~ REMOVE THEM ~~~~~~~~~
+    x_start = -1000.0;
+    z_start = 200.0;
+    Point = pcl::PointXYZ(0,0,0);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
 void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize)
@@ -54,6 +56,10 @@ void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size 
     distance_robot_target = std::sqrt( std::pow(refPnt.z,2) + std::pow(refPnt.x,2) );
 
     interface->clean();
+
+    grid = AStar_mtx (grid_size, std::vector<AStar_cell>(grid_size, {true, false, 1, nullptr, {0,0}}));
+    grid[robot.row][robot.col].visited  = true;
+    grid[robot.row][robot.col].cell     = robot;
 
     obstacle_finding(PointCloud);
 
@@ -80,6 +86,25 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 
     stream->PC_acq();
 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ REMOVE IT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // start_add_plane = std::chrono::high_resolution_clock::now();
+    // // Add the reference plane
+    // for (int i = 0; i < 400; i++){
+    //     for (int j = 0; j < 500; j++){
+    //         Point.x = x_start+5*i;
+    //         Point.z = z_start+5*j;
+    //         Point.y = -200.0;
+    //         stream->cloud->points.push_back(Point);
+    //     }
+    // }
+    // stop_add_plane = std::chrono::high_resolution_clock::now();
+    // duration = std::chrono::duration_cast<std::chrono::microseconds>(stop_add_plane - start_add_plane);
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     stream->project_RGB2DEPTH(targetPoint2D);
 
     plane->update(stream->cloud);
@@ -93,6 +118,10 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
     distance_robot_target = std::sqrt( std::pow(stream->refPnt.z,2) + std::pow(stream->refPnt.x,2) );
 
     interface->clean();
+
+    grid = AStar_mtx (grid_size, std::vector<AStar_cell>(grid_size, {true, false, 1, nullptr, {0,0}}));
+    grid[robot.row][robot.col].visited  = true;
+    grid[robot.row][robot.col].cell     = robot;
 
     obstacle_finding(stream->cloud);
 
@@ -132,12 +161,17 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
                 if ( !( (p_row > target.row - offset_from_targer) && (p_row < target.row + offset_from_targer) && 
                         (p_col > target.col - offset_from_targer) && (p_col < target.col + offset_from_targer) ) )
                 {
-                    grid[p_row][p_col].cell.row = p_row;
-                    grid[p_row][p_row].cell.col = p_col;
-                    grid[p_row][p_col].free = false;
+                    // Write the obstacle in the cell only the first time that we
+                    // identify that cell as not free
+                    if (grid[p_row][p_col].free){
 
-                    // The for used for find the obstacle is also used to draw the obstacle in the interface
-                    interface->put_obstacle(p_col, p_row);
+                        interface->put_obstacle(p_col, p_row);
+
+                        grid[p_row][p_col].cell.row = p_row;
+                        grid[p_row][p_row].cell.col = p_col;
+                        grid[p_row][p_col].free = false;
+                        
+                    }
 
                 }
             }
