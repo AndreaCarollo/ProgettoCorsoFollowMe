@@ -103,7 +103,8 @@ int main (int argc, char** argv)
         auto stop_control = std::chrono::high_resolution_clock::now();
         auto duration_control = std::chrono::duration_cast<std::chrono::microseconds>(stop_control - start_control);
 
-        durations_control.push_back((float) duration_control.count()/1000 - (float) ctrl.duration.count()/1000);
+        // durations_control.push_back((float) duration_control.count()/1000 - (float) ctrl.duration.count()/1000);
+        durations_control.push_back((float) duration_control.count()/1000);
 
         // NOTE: Since the .bag file that we consider does not have a plane, we must add a plane every frame.
         //       The time emploied to add the plane is removed from the control algorithm time.
@@ -148,8 +149,8 @@ int main (int argc, char** argv)
 
     }
 
-    float t_rgb_acq = accumulate( durations_rgb_acq.begin(), durations_rgb_acq.end(), 0.0/ durations_rgb_acq.size());
-    float t_control = accumulate( durations_control.begin(), durations_control.end(), 0.0/ durations_control.size());
+    float t_rgb_acq = accumulate( durations_rgb_acq.begin(), durations_rgb_acq.end(), 0.0) / durations_rgb_acq.size();
+    float t_control = accumulate( durations_control.begin(), durations_control.end(), 0.0) / durations_control.size();
 
     cout << "Timing :"                                              << endl;
     cout << "   RGB acquisition time   :  " << t_rgb_acq << "\t[ms]" << endl;

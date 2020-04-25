@@ -29,9 +29,9 @@ Control::Control(ConfigReader *p)
 
 
     // ~~~~~~~~~~~ REMOVE THEM ~~~~~~~~~
-    x_start = -1000.0;
-    z_start = 200.0;
-    Point = pcl::PointXYZ(0,0,0);
+    // x_start = -1000.0;
+    // z_start = 200.0;
+    // Point = pcl::PointXYZ(0,0,0);
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 

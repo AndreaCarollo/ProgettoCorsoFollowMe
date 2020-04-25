@@ -41,7 +41,7 @@ class Control{
 
 
         // ~~~~~~~~~~~ REMOVE IT ~~~~~~~~~~~
-        std::chrono::microseconds duration;
+        // std::chrono::microseconds duration;
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         Control(ConfigReader *p);
@@ -68,9 +68,9 @@ class Control{
 
 
         // ~~~~~~~~~~~ REMOVE THEM ~~~~~~~~~
-        float x_start, z_start;
-        pcl::PointXYZ Point;
-        std::chrono::_V2::system_clock::time_point start_add_plane, stop_add_plane;
+        // float x_start, z_start;
+        // pcl::PointXYZ Point;
+        // std::chrono::_V2::system_clock::time_point start_add_plane, stop_add_plane;
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
