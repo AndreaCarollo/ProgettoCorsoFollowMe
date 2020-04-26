@@ -29,8 +29,8 @@ Control::Control(ConfigReader *p)
 
 
     // ~~~~~~~~~~~ REMOVE THEM ~~~~~~~~~
-    // x_start = -1000.0;
-    // z_start = 200.0;
+    // x_start = -1.0;
+    // z_start = 0.2;
     // Point = pcl::PointXYZ(0,0,0);
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
@@ -90,12 +90,12 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ REMOVE IT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // start_add_plane = std::chrono::high_resolution_clock::now();
-    // // Add the reference plane
+    // Add the reference plane
     // for (int i = 0; i < 400; i++){
     //     for (int j = 0; j < 500; j++){
-    //         Point.x = x_start+5*i;
-    //         Point.z = z_start+5*j;
-    //         Point.y = -200.0;
+    //         Point.x = x_start+0.005*i;
+    //         Point.z = z_start+0.005*j;
+    //         Point.y = -0.2;
     //         stream->cloud->points.push_back(Point);
     //     }
     // }

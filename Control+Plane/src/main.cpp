@@ -60,7 +60,7 @@ int main (int argc, char** argv)
     //Call the class Stream
     std::string stream_name = "Realsense stream";
     frames = pipe.wait_for_frames();                   // The first frame is used to initialize the class stream only
-    Stream stream(stream_name, &frames);
+    Stream stream(stream_name, &frames, p);
 
 
     // LOOP
@@ -75,7 +75,7 @@ int main (int argc, char** argv)
         // ------------------ OpenCV Part ----------------------- //
 
         auto start_rgb_acq = std::chrono::high_resolution_clock::now();
-
+        
         // Load the images from the camera and convert it in cv::Mat
         stream.RGB_acq();
 
@@ -96,10 +96,10 @@ int main (int argc, char** argv)
         // ---------------- Control Part ------------------------ //
 
         auto start_control = std::chrono::high_resolution_clock::now();
-
+        
         // Update the control -> all other operation are called inside the update
         ctrl.update(&target_point, &stream);
-
+        
         auto stop_control = std::chrono::high_resolution_clock::now();
         auto duration_control = std::chrono::duration_cast<std::chrono::microseconds>(stop_control - start_control);
 
@@ -114,7 +114,7 @@ int main (int argc, char** argv)
 
         // ---------------- Visualization Part ------------------ //
 
-        /* // Does not work
+        /*
         // Apply transformation mtx to plane and pcl
         pcl::transformPointCloud(*stream.cloud, *cloud_tmp, ctrl.plane->transf_mtx);
         stream.cloud.swap (cloud_tmp);
@@ -145,7 +145,7 @@ int main (int argc, char** argv)
         viewer -> removePointCloud("sample cloud");
         viewer -> removePointCloud("Plane");         // this gives segmentation when no plane is found! anyway is only for debug
         viewer -> removeShape("cube");
-        viewer -> removeAllCoordinateSystems();
+        // viewer -> removeAllCoordinateSystems();
 
     }
 

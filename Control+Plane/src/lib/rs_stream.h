@@ -3,6 +3,7 @@
 #define RS_STREAM
 
 #include "./followme.h"
+#include "./configurator.h"
 
 
 // --------------------------------------------
@@ -13,7 +14,7 @@ class Stream{
 
         std::string stream_name;
 
-        rs2::frameset frames;
+        rs2::frameset* frames;
 
         int w_RGB, h_RGB;
         int w_IR, h_IR;
@@ -28,7 +29,7 @@ class Stream{
         cv::Point depth_point;
         pcl::PointXYZ refPnt;
 
-        Stream(std::string stream_name, rs2::frameset *frames);
+        Stream(std::string stream_name, rs2::frameset *frames, ConfigReader* cfg);
         void update(rs2::frameset *frames);
         void RGB_acq();
         void IR_acq();
@@ -36,6 +37,8 @@ class Stream{
         void project_RGB2DEPTH(cv::Point *input);
 
     private:
+
+        int leaf;
 
         cv::Mat tmp;
 
