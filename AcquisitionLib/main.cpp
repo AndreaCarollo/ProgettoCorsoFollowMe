@@ -2,18 +2,23 @@
 #include "./lib/followme.h"
 #include "./lib/rs_stream.h"
 #include "./lib/utils.h"
+#include "./lib/configurator.h"
 
 
 int main(int argc, char const *argv[]) try
 {
+
+    // Create the configurator object and parse conf.ini file
+    ConfigReader *pharser = ConfigReader::getInstance();
+    pharser->parseFile((char *) argv[1]);
 
     // Create a configuration for configuring the pipeline with a non default profile
     rs2::config cfg;
     rs2::frameset frames;
     
     // Add desired streams to configuration
-    // camSettings_rec(&cfg);                         // enable stream from the camera
-    cfg.enable_device_from_file((char *) argv[1]);    // Enable stream from a recordered device (.bag file)
+    // camSettings(&cfg, pharser);                       // enable stream from the camera
+    cfg.enable_device_from_file((char *) argv[2]);    // Enable stream from a recordered device (.bag file)
 
     // If we use a recordered device, we must be sure that the stream contains the frames that we will use
     // ( for example the "file1.bag" does not have the infrared stream )
@@ -33,7 +38,7 @@ int main(int argc, char const *argv[]) try
     //Call the class Stream
     std::string stream_name = "Realsense stream";
     frames = p.wait_for_frames();                   // The first frame is used to initialize the class stream only
-    Stream stream(stream_name, &frames);
+    Stream stream(stream_name, &frames, pharser);
 
     std::vector<float> acq_vector, comp_vector, visu_vector;
 

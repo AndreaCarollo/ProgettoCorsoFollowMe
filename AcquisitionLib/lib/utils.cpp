@@ -1,22 +1,24 @@
 #include "./utils.h"
 
-const int IMAGE_WIDTH  = 640;
-const int IMAGE_HEIGTH = 480;
-const int FRAME_RATE   =  30;
-
-cv::Size IMAGE_SIZE = cv::Size(IMAGE_WIDTH, IMAGE_HEIGTH);
-
 
 // --------------- FUNCTIONS --------------- //
 
 
 /* Set the camera settings */
-void camSettings(rs2::config *cfg){
+void camSettings(rs2::config *cfg, ConfigReader* p){
+
+    int rgb_width, rgb_heigth, ir_width, ir_heigth, fps;
+    p->getValue("RGB_WIDTH", rgb_width);
+    p->getValue("RGB_HEIGTH", rgb_heigth);
+    p->getValue("IR_WIDTH", ir_width);
+    p->getValue("IR_HEIGTH", ir_heigth);
+    p->getValue("FPS", fps);
+
     
     // Add desired streams to configuration
-    cfg->enable_stream(RS2_STREAM_COLOR,    IMAGE_WIDTH, IMAGE_HEIGTH, RS2_FORMAT_BGR8, FRAME_RATE);
-    cfg->enable_stream(RS2_STREAM_INFRARED, IMAGE_WIDTH, IMAGE_HEIGTH, RS2_FORMAT_Y8,   FRAME_RATE);
-    cfg->enable_stream(RS2_STREAM_DEPTH,    IMAGE_WIDTH, IMAGE_HEIGTH, RS2_FORMAT_Z16,  FRAME_RATE);
+    cfg->enable_stream(RS2_STREAM_COLOR,    rgb_width, rgb_heigth, RS2_FORMAT_BGR8, fps);
+    cfg->enable_stream(RS2_STREAM_INFRARED, ir_width,  ir_heigth,  RS2_FORMAT_Y8,   fps);
+    cfg->enable_stream(RS2_STREAM_DEPTH,    ir_width,  ir_heigth,  RS2_FORMAT_Z16,  fps);
 
 }
 

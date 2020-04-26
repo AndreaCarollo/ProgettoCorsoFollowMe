@@ -4,8 +4,10 @@
 // --------------------------------------------
 // --------------Class functions---------------
 // --------------------------------------------
-Stream::Stream(std::string stream_name, rs2::frameset *frames)
+Stream::Stream(std::string stream_name, rs2::frameset *frames, ConfigReader* cfg)
 {
+    cfg->getValue("ACQUISITION_LEAF", leaf);
+
     this->stream_name = stream_name;
     this->depth_scale = 0.001;
 
@@ -23,10 +25,10 @@ Stream::Stream(std::string stream_name, rs2::frameset *frames)
     h_IR  = depth.as<rs2::video_frame>().get_height();
 
     cloud = PntCld::Ptr (new PntCld);
-    cloud->width = w_IR/64;
+    cloud->width = w_IR/leaf;
     cloud->height = h_IR;
     cloud->is_dense = false;
-    cloud->points.resize(w_IR*h_IR/64);
+    cloud->points.resize(w_IR*h_IR/leaf);
 }
 
 void Stream::update(rs2::frameset *frames)
@@ -60,7 +62,6 @@ void Stream::IR_acq()
 }
 
 /* Transform an object point in a point cloud */
-/*
 void Stream::points_to_pcl(const rs2::points points){
 
     // Set all the paramethers of the point clouds
@@ -72,27 +73,12 @@ void Stream::points_to_pcl(const rs2::points points){
         p.x = - ptr->x;
         p.y = - ptr->y;
         p.z = ptr->z;
-        ptr ++;
+        ptr += leaf;
     }
-}
-*/
-void Stream::points_to_pcl(const rs2::points points){
 
-    // Set all the paramethers of the point clouds
-    auto sp = points.get_profile().as<rs2::video_stream_profile>();
-
-    auto ptr = points.get_vertices();
-    for (auto& p : cloud->points)
-    {
-        p.x = - ptr->x;
-        p.y = - ptr->y;
-        p.z = ptr->z;
-        ptr += 64;
-    }
 }
 
-
-void Stream::PC_acq(bool flag = false)
+void Stream::PC_acq(bool flag)
 {
     // Realsense point cloud generation (points object)
     pc.map_to(depth);
@@ -129,6 +115,6 @@ void Stream::project_RGB2DEPTH(cv::Point *input)
                                            this->rgb_pixel);
     
     this->depth_point = cv::Point((int) depth_pixel[0], (int) depth_pixel[1]);
-    this->refPnt = this->cloud->at(this->depth_point.x, this->depth_point.y);
+    this->refPnt = this->cloud->at(this->depth_point.x/leaf, this->depth_point.y);
 
 }
