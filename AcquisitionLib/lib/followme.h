@@ -22,6 +22,8 @@
 #include <string.h>
 #include <iostream>
 #include <thread>
+#include <vector>
+#include <queue>
 #include <chrono> // for time measurement
 
 // Point Cloud headers

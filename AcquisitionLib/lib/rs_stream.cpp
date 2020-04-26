@@ -23,10 +23,10 @@ Stream::Stream(std::string stream_name, rs2::frameset *frames)
     h_IR  = depth.as<rs2::video_frame>().get_height();
 
     cloud = PntCld::Ptr (new PntCld);
-    cloud->width = w_IR;
+    cloud->width = w_IR/64;
     cloud->height = h_IR;
     cloud->is_dense = false;
-    cloud->points.resize(w_IR*h_IR);
+    cloud->points.resize(w_IR*h_IR/64);
 }
 
 void Stream::update(rs2::frameset *frames)
@@ -60,6 +60,7 @@ void Stream::IR_acq()
 }
 
 /* Transform an object point in a point cloud */
+/*
 void Stream::points_to_pcl(const rs2::points points){
 
     // Set all the paramethers of the point clouds
@@ -71,10 +72,25 @@ void Stream::points_to_pcl(const rs2::points points){
         p.x = - ptr->x;
         p.y = - ptr->y;
         p.z = ptr->z;
-        ptr++;
+        ptr ++;
     }
-
 }
+*/
+void Stream::points_to_pcl(const rs2::points points){
+
+    // Set all the paramethers of the point clouds
+    auto sp = points.get_profile().as<rs2::video_stream_profile>();
+
+    auto ptr = points.get_vertices();
+    for (auto& p : cloud->points)
+    {
+        p.x = - ptr->x;
+        p.y = - ptr->y;
+        p.z = ptr->z;
+        ptr += 64;
+    }
+}
+
 
 void Stream::PC_acq(bool flag = false)
 {

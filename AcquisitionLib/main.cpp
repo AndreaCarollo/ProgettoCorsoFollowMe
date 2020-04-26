@@ -35,11 +35,13 @@ int main(int argc, char const *argv[]) try
     frames = p.wait_for_frames();                   // The first frame is used to initialize the class stream only
     Stream stream(stream_name, &frames);
 
+    std::vector<float> acq_vector, comp_vector, visu_vector;
+
 
     while(cv::waitKey(1) != 27) // If the ESC button is pressed, the cycle is stopped and the program finishes
     {
         // Start chrono time
-        auto start = std::chrono::high_resolution_clock::now();  
+        auto start_acq = std::chrono::high_resolution_clock::now();  
 
         // Block program until frames arrive
         frames = p.wait_for_frames();
@@ -52,23 +54,17 @@ int main(int argc, char const *argv[]) try
         // stream.IR_acq();
         stream.PC_acq(false);        // If the argument is true, also a cv::Mat is generated for the depth (default = false)
 
+
         // Start chrono time
         auto stop_acq = std::chrono::high_resolution_clock::now();
 
-        auto duration_acq = std::chrono::duration_cast<std::chrono::milliseconds>(stop_acq - start);
-
-        // Start chrono time
-        auto start_comp = std::chrono::high_resolution_clock::now();
+        auto duration_acq = std::chrono::duration_cast<std::chrono::microseconds>(stop_acq - start_acq);
+        acq_vector.push_back((float) duration_acq.count()/1000);
 
         // Select the target point (now the center of the image)
         cv::Point pointFromDetection = cv::Point(stream.color_frame.cols*0.5, stream.color_frame.rows*0.5);
         // Transform the target point in (RGB reference system) into DEPTH reference system
         stream.project_RGB2DEPTH(&pointFromDetection);
-
-        // Start chrono time
-        auto stop_comp = std::chrono::high_resolution_clock::now();
-
-        auto duration_comp = std::chrono::duration_cast<std::chrono::microseconds>(stop_comp - start_comp);
 
         // Start chrono time
         auto start_visu = std::chrono::high_resolution_clock::now();
@@ -102,16 +98,27 @@ int main(int argc, char const *argv[]) try
         // Start chrono time
         auto stop = std::chrono::high_resolution_clock::now();
 
-        auto duration_visu = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start_visu);
-
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        std::cout << "Duration time : \t\t" << duration.count() << "\tms" << std::endl;
-        std::cout << "\tAcquisition time   : \t" << duration_acq.count() << "\tms" << std::endl;
-        std::cout << "\tComputation time   : \t" << duration_comp.count() << "\tus" << std::endl;
-        std::cout << "\tVisualization time : \t" << duration_visu.count() << "\tms" << std::endl << std::endl;
+        auto duration_visu = std::chrono::duration_cast<std::chrono::microseconds>(stop - start_visu);
+        visu_vector.push_back((float) duration_visu.count()/1000);
 
     }
-    
+
+    float duration_1 = 0;
+    float duration_3 = 0;
+
+    for (int i = 0; i<acq_vector.size(); i++){
+        duration_1 += acq_vector[i];
+        duration_3 += visu_vector[i];
+    } 
+
+    duration_1 = duration_1 / acq_vector.size();
+    duration_3 = duration_3 / acq_vector.size();
+
+    std::cout << "Duration times : " << std::endl;
+    std::cout << "\tAcquisition time   : \t" << duration_1 << "\tms" << std::endl;
+    std::cout << "\tVisualization time : \t" << duration_3 << "\tms" << std::endl << std::endl;
+
+
     return EXIT_SUCCESS;
 }
 
