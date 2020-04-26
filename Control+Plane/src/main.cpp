@@ -60,7 +60,7 @@ int main (int argc, char** argv)
     //Call the class Stream
     std::string stream_name = "Realsense stream";
     frames = pipe.wait_for_frames();                   // The first frame is used to initialize the class stream only
-    Stream stream(stream_name, &frames);
+    Stream stream(stream_name, &frames, p);
 
 
     // LOOP
@@ -85,7 +85,7 @@ int main (int argc, char** argv)
         durations_rgb_acq.push_back((float) duration_rgb_acq.count()/1000);
 
         // Target point choosing
-        y_rel = 0.5;                                    x_rel = 0.4;
+        y_rel = 0.5;                                    x_rel = 0.5;
         y_cv = stream.color_frame.rows * y_rel;         x_cv = stream.color_frame.cols * x_rel;
 
         // A rectangle is put on the image as a marker

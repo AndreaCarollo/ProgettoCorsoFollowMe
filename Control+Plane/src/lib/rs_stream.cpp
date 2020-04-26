@@ -4,8 +4,10 @@
 // --------------------------------------------
 // --------------Class functions---------------
 // --------------------------------------------
-Stream::Stream(std::string stream_name, rs2::frameset *frames)
+Stream::Stream(std::string stream_name, rs2::frameset *frames, ConfigReader* cfg)
 {
+    cfg->getValue("ACQUISITION_LEAF", leaf);
+
     this->stream_name = stream_name;
     this->depth_scale = 0.001;
 
@@ -23,10 +25,13 @@ Stream::Stream(std::string stream_name, rs2::frameset *frames)
     h_IR  = depth.as<rs2::video_frame>().get_height();
 
     cloud = PntCld::Ptr (new PntCld);
-    cloud->width = w_IR;
+    cloud->width = w_IR/leaf;
     cloud->height = h_IR;
     cloud->is_dense = false;
-    cloud->points.resize(w_IR*h_IR);
+    cloud->points.resize(w_IR*h_IR/leaf);
+
+    this->color_profile = this->color.get_profile();
+    this->depth_profile = this->depth.get_profile();
 }
 
 void Stream::update(rs2::frameset *frames)
@@ -36,8 +41,7 @@ void Stream::update(rs2::frameset *frames)
 
     this->color = frames->get_color_frame();
     this->depth = frames->get_depth_frame();
-    this->color_profile = this->color.get_profile();
-    this->depth_profile = this->depth.get_profile();
+
 }
 
 void Stream::RGB_acq()
@@ -60,8 +64,8 @@ void Stream::IR_acq()
 }
 
 /* Transform an object point in a point cloud */
-void Stream::points_to_pcl(const rs2::points points){
-
+void Stream::points_to_pcl()
+{
     // Set all the paramethers of the point clouds
     auto sp = points.get_profile().as<rs2::video_stream_profile>();
 
@@ -71,32 +75,26 @@ void Stream::points_to_pcl(const rs2::points points){
         p.x = - ptr->x;
         p.y = - ptr->y;
         p.z = ptr->z;
-        ptr++;
+        ptr += leaf;
     }
-
 }
 
 void Stream::PC_acq(bool flag)
 {
     // Realsense point cloud generation (points object)
-    pc.map_to(depth);
     points = pc.calculate(depth);
 
     // Transform the points object of rs2 in a point cloud of pcl
-    points_to_pcl(points);
+    points_to_pcl();
 
     if (flag){
         // Convert the rs2 frame in a OpenCV Mat
         this->depth_frame = cv::Mat (cv::Size(w_IR, h_IR), CV_8UC3, (void *) depth.get_data(), cv::Mat::AUTO_STEP);
     }
-    
 }
 
 void Stream::project_RGB2DEPTH(cv::Point *input)
 {
-
-    this->rgb_point = (*input);
-
     this->rgb_pixel[0] = (float) input->x;
     this->rgb_pixel[1] = (float) input->y;
 
@@ -112,7 +110,5 @@ void Stream::project_RGB2DEPTH(cv::Point *input)
                                            &color_extrin_to_depth, &depth_extrin_to_color, 
                                            this->rgb_pixel);
     
-    this->depth_point = cv::Point((int) depth_pixel[0], (int) depth_pixel[1]);
-    this->refPnt = this->cloud->at(this->depth_point.x, this->depth_point.y);
-
+    this->refPnt = cloud->at((((int) depth_pixel[1] - 1) * w_IR + (int) depth_pixel[0])/leaf);
 }

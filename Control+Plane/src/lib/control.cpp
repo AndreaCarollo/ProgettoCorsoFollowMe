@@ -109,7 +109,7 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 
     plane->update(stream->cloud);
 
-    refPnt = stream->cloud->points[(targetPoint2D->y-1)*stream->w_IR+targetPoint2D->x];
+    refPnt = stream->refPnt;
     refPnt = pcl::transformPoint(refPnt, plane->transf_mtx);
 
     target.row = robot.row - (stream->refPnt.z)*scale;
