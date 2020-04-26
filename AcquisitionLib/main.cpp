@@ -40,31 +40,46 @@ int main(int argc, char const *argv[]) try
     frames = p.wait_for_frames();                   // The first frame is used to initialize the class stream only
     Stream stream(stream_name, &frames, pharser);
 
-    std::vector<float> acq_vector, comp_vector, visu_vector;
+    std::vector<float> rgb_vector, depth_vector, visu_vector;
 
 
     while(cv::waitKey(1) != 27) // If the ESC button is pressed, the cycle is stopped and the program finishes
     {
-        // Start chrono time
-        auto start_acq = std::chrono::high_resolution_clock::now();  
-
+        
         // Block program until frames arrive
         frames = p.wait_for_frames();
+
+        // Start chrono time
+        auto start_rgb = std::chrono::high_resolution_clock::now();  
 
         // Update the stream object
         stream.update(&frames);     
 
         // Load the images from the camera and convert it in cv::Mat
         stream.RGB_acq();
-        // stream.IR_acq();
-        stream.PC_acq(false);        // If the argument is true, also a cv::Mat is generated for the depth (default = false)
+
+        // Start chrono time
+        auto stop_rgb = std::chrono::high_resolution_clock::now();
+
+        auto duration_rgb = std::chrono::duration_cast<std::chrono::microseconds>(stop_rgb - start_rgb);
+        rgb_vector.push_back((int) duration_rgb.count());
+
 
 
         // Start chrono time
-        auto stop_acq = std::chrono::high_resolution_clock::now();
+        auto start_depth = std::chrono::high_resolution_clock::now();  
 
-        auto duration_acq = std::chrono::duration_cast<std::chrono::microseconds>(stop_acq - start_acq);
-        acq_vector.push_back((float) duration_acq.count()/1000);
+        // stream.IR_acq();
+        stream.PC_acq(false);        // If the argument is true, also a cv::Mat is generated for the depth (default = false)
+
+        // Start chrono time
+        auto stop_depth = std::chrono::high_resolution_clock::now();
+
+        auto duration_depth = std::chrono::duration_cast<std::chrono::microseconds>(stop_depth - start_depth);
+        depth_vector.push_back((float) duration_depth.count()/1000);
+
+
+        
 
         // Select the target point (now the center of the image)
         cv::Point pointFromDetection = cv::Point(stream.color_frame.cols*0.5, stream.color_frame.rows*0.5);
@@ -109,19 +124,23 @@ int main(int argc, char const *argv[]) try
     }
 
     float duration_1 = 0;
+    float duration_2 = 0;
     float duration_3 = 0;
 
-    for (int i = 0; i<acq_vector.size(); i++){
-        duration_1 += acq_vector[i];
+    for (int i = 0; i<rgb_vector.size(); i++){
+        duration_1 += rgb_vector[i];
+        duration_2 += depth_vector[i];
         duration_3 += visu_vector[i];
     } 
 
-    duration_1 = duration_1 / acq_vector.size();
-    duration_3 = duration_3 / acq_vector.size();
+    duration_1 = duration_1 / rgb_vector.size();
+    duration_2 = duration_2 / rgb_vector.size();
+    duration_3 = duration_3 / rgb_vector.size();
 
-    std::cout << "Duration times : " << std::endl;
-    std::cout << "\tAcquisition time   : \t" << duration_1 << "\tms" << std::endl;
-    std::cout << "\tVisualization time : \t" << duration_3 << "\tms" << std::endl << std::endl;
+    std::cout << std::endl << "Duration times : " << std::endl;
+    std::cout << "\tRGB acquisition time        : \t" << duration_1 << "\tus" << std::endl;
+    std::cout << "\tPointCloud acquisition time : \t" << duration_2 << "\tms" << std::endl << std::endl;
+    std::cout << "\tVisualization time          : \t" << duration_3 << "\tms" << std::endl << std::endl;
 
 
     return EXIT_SUCCESS;
