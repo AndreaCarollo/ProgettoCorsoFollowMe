@@ -54,7 +54,7 @@ public:
     void calc_hist(cv::Mat *ROI);
 
     void remove_ROIs(cv::Point center, std::vector<cv::Rect> ROIs, double thr);  // tiene solo la persona nel centro
-    float eucledian_norm(cv::Point p1, cv::Point p2);
+    //float eucledian_norm(cv::Point p1, cv::Point p2);
 
     void QR_code(cv::Mat frame);  // detect and decode the QR code
     void display_QR(cv::Mat frame, cv::Mat QR_bbox);  // display a bbox on QR code
@@ -64,3 +64,5 @@ public:
 };
 
 void detection_on_frame(cv::Mat *frame, std::vector<cv::Rect> *peoples);
+
+float eucledian_norm(cv::Point p1, cv::Point p2);

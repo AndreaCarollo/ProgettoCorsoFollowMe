@@ -81,7 +81,7 @@ void person::remove_ROIs(cv::Point center, std::vector<cv::Rect> ROIs, double th
 }
 
 // Function for computing the distance between two points on a plane
-float person::eucledian_norm(cv::Point p1, cv::Point p2)
+float eucledian_norm(cv::Point p1, cv::Point p2)
 {
     return sqrt( (float)(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2)) );
 }
