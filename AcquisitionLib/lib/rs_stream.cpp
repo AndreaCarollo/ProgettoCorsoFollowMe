@@ -98,7 +98,7 @@ void Stream::PC_acq(bool flag)
 void Stream::project_RGB2DEPTH(cv::Point *input)
 {
 
-    this->rgb_point = (*input);
+    // this->rgb_point = (*input);  // non serve
 
     this->rgb_pixel[0] = (float) input->x;
     this->rgb_pixel[1] = (float) input->y;
@@ -116,7 +116,7 @@ void Stream::project_RGB2DEPTH(cv::Point *input)
                                            this->rgb_pixel);
     
     this->depth_point = cv::Point((int) depth_pixel[0], (int) depth_pixel[1]);
-    // this->refPnt = cloud->at(depth_point.x, depth_point.y);
-    this->refPnt = cloud->points[(depth_point.y - 1) * cloud->width + depth_point.x];
+    this->refPnt = cloud->at(((depth_point.y - 1) * w_IR + depth_point.x)/leaf);
+    // this->refPnt = cloud->points[(depth_point.y - 1) * cloud->width + depth_point.x];
 
 }
