@@ -110,5 +110,6 @@ void Stream::project_RGB2DEPTH(cv::Point *input)
                                            &color_extrin_to_depth, &depth_extrin_to_color, 
                                            this->rgb_pixel);
     
+    // this->refPnt = cloud->points[(int) ((( depth_pixel[1] - 1 ) * w_IR + depth_pixel[0])/leaf)];
     this->refPnt = cloud->at((((int) depth_pixel[1] - 1) * w_IR + (int) depth_pixel[0])/leaf);
 }

@@ -17,7 +17,7 @@ Control::Control(ConfigReader *p)
     p->getValue("PATH_PLANNING", path_planning);                // If path_planning is true, use the path planning algorithm 
     p->getValue("OBST_LOOK_DOWN", look_down);                   // How much of the total point cloud is used to search the obstacle
     
-    scale = grid_size / max_dist;                               // distance scale from real [mm] to grid
+    scale = grid_size / max_dist;                               // distance scale from real [m] to grid
     robot = {grid_size-1, grid_size/2};                         // position of the robot in the grid (index terms of row and column)
 
     offset_from_targer = target_threshold*scale;                // An obstacle, to be considered, must be at least at target_threshold [mm] from the target
@@ -109,13 +109,26 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 
     plane->update(stream->cloud);
 
-    refPnt = stream->refPnt;
-    refPnt = pcl::transformPoint(refPnt, plane->transf_mtx);
+    refPnt = pcl::transformPoint(stream->refPnt, plane->transf_mtx);
+    
+    // tmp = (refPnt.z)*scale;
+    // if (tmp > robot.row)
+    //     tmp = robot.row;
+    // if (tmp < 0)
+    //     tmp = 0;
+    // target.row = robot.row - tmp;
 
-    target.row = robot.row - (stream->refPnt.z)*scale;
-    target.col = robot.col - (stream->refPnt.x)*scale;
+    // tmp = (refPnt.x)*scale;
+    // if (tmp > robot.col)
+    //     tmp = robot.col;
+    // if (tmp < - robot.col)
+    //     tmp = - robot.col;
+    // target.col = robot.col - tmp;
 
-    distance_robot_target = std::sqrt( std::pow(stream->refPnt.z,2) + std::pow(stream->refPnt.x,2) );
+    target.row = robot.row - (refPnt.z)*scale;
+    target.col = robot.col - (refPnt.x)*scale;
+    
+    distance_robot_target = std::sqrt( std::pow(refPnt.z,2) + std::pow(refPnt.x,2) );
 
     interface->clean();
 
@@ -139,19 +152,12 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
 
     for (size_t i = look_down*cloud->size(); i<cloud->size(); i += obstacle_resolution)
     {        
-        // Considering that the plane is the one in which lives the robot, all the points
-        // that do not be in this plane are obstacles, in principle (~5.5 ms)
-        float d = abs(plane->coefficients->values[0] * cloud->points[i].x +
-                    plane->coefficients->values[1] * cloud->points[i].y +
-                    plane->coefficients->values[2] * cloud->points[i].z +
-                    plane->coefficients->values[3]);
-        
-                
-        if ( d > low_threshold && d < up_threshold )                    // If we use the point/plane distance or the difference in y
+        tmpPnt = pcl::transformPoint(cloud->points[i], plane->transf_mtx);
+
+        if ( tmpPnt.y > low_threshold && tmpPnt.y < up_threshold )
         {
-            // If we use the point/plane distance or the difference in y
-            int p_row = robot.row - (cloud->points[i].z)*scale;
-            int p_col = robot.col - (cloud->points[i].x)*scale;
+            int p_row = robot.row - (tmpPnt.z)*scale;
+            int p_col = robot.col - (tmpPnt.x)*scale;
 
             if (p_row >= 0 && p_col >= 0 && p_row < grid_size && p_col < grid_size)     // Obstacle inside the grid
             {

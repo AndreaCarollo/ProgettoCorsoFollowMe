@@ -54,7 +54,7 @@ class Control{
         float max_dist, low_threshold, up_threshold, target_threshold;
         int offset_from_targer;
         ushort obstacle_resolution;
-        int grid_size;
+        int grid_size, tmp;
         float scale, look_down;
         float distance_robot_target, distance_threshold;
 

@@ -69,13 +69,13 @@ int main (int argc, char** argv)
     {
         
         frames = pipe.wait_for_frames();
-        stream.update(&frames);
-
+        
 
         // ------------------ OpenCV Part ----------------------- //
 
         auto start_rgb_acq = std::chrono::high_resolution_clock::now();
 
+        stream.update(&frames);
         // Load the images from the camera and convert it in cv::Mat
         stream.RGB_acq();
 
@@ -114,14 +114,14 @@ int main (int argc, char** argv)
 
         // ---------------- Visualization Part ------------------ //
 
-        /* // Does not work
+        // Does not work
         // Apply transformation mtx to plane and pcl
-        pcl::transformPointCloud(*stream.cloud, *cloud_tmp, ctrl.plane->transf_mtx);
-        stream.cloud.swap (cloud_tmp);
+        // pcl::transformPointCloud(*stream.cloud, *cloud_tmp, ctrl.plane->transf_mtx);
+        // stream.cloud.swap (cloud_tmp);
 
-        pcl::transformPointCloud(*ctrl.plane->plane_cloud, *cloud_tmp, ctrl.plane->transf_mtx);
-        ctrl.plane->plane_cloud.swap (cloud_tmp);
-        */
+        // pcl::transformPointCloud(*ctrl.plane->plane_cloud, *cloud_tmp, ctrl.plane->transf_mtx);
+        // ctrl.plane->plane_cloud.swap (cloud_tmp);
+        
 
         // Add a cube to the visualizer that works as a marker
         viewer->addCube(ctrl.refPnt.x-0.030,ctrl.refPnt.x+0.030,
@@ -131,8 +131,8 @@ int main (int argc, char** argv)
 
         PCViewer(stream.cloud, viewer);
         viewer->addPointCloud(ctrl.plane->plane_cloud, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(stream.cloud, 0, 255, 0),"Plane");
-        // viewer->addCoordinateSystem(1000, "RF_plane");
-        // viewer->addCoordinateSystem(1000, ctrl.plane->transf_mtx, "RF_cam");
+        viewer->addCoordinateSystem(1, "RF_cam");
+        viewer->addCoordinateSystem(1, ctrl.plane->transf_mtx.inverse(), "RF_plane");
 
 
         cv::imshow("Image",stream.color_frame);

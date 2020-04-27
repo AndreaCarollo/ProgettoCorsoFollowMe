@@ -29,9 +29,9 @@ Plane::Plane(ConfigReader *p)
     // Set the segmentation object
     seg.setModelType (pcl::SACMODEL_PERPENDICULAR_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setMaxIterations (tries);
+    // seg.setMaxIterations (tries);
     seg.setDistanceThreshold (threshold);
-    seg.setAxis(normal);
+    // seg.setAxis(normal);
     seg.setEpsAngle(M_PI/180*angle);
     seg.setOptimizeCoefficients(true);  // optional
 
@@ -66,6 +66,7 @@ void Plane::setTransfMtx()
     transf_mtx (1,2) = n3;
     transf_mtx (2,2) = n2/den;
     transf_mtx (1,3) = -coefficients->values[3];
+
 }
 
 void Plane::downsample(PntCld::Ptr cloud_in)
@@ -83,6 +84,10 @@ void Plane::update(PntCld::Ptr cloud_in)
     // PntCld::Ptr cloud_tmp (new PntCld);
     downsample(cloud_in);   // generates easy_cloud
     
+    // tries and normal may change time by time
+    seg.setAxis(normal);
+    seg.setMaxIterations (tries);
+
     // Run the segmentation
     seg.setInputCloud (easy_cloud);
     seg.segment (*inliers, *coefficients);
@@ -93,6 +98,15 @@ void Plane::update(PntCld::Ptr cloud_in)
     }
     
     tries = (tries < min_tries) ? tries : tries/incrementFactor;
+
+
+    // if(coefficients->values[3] > 0)
+    // {
+    //     coefficients->values[0] = -coefficients->values[0];
+    //     coefficients->values[1] = -coefficients->values[1];
+    //     coefficients->values[2] = -coefficients->values[2];
+    //     coefficients->values[3] = -coefficients->values[3];
+    // }
 
     setTransfMtx();
 
