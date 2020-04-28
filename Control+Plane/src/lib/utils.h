@@ -14,7 +14,7 @@ typedef pcl::visualization::PCLVisualizer Visualizer;
 // ~~~~~~~~~~~~~~~~ UTIL FUNCTIONS ~~~~~~~~~~~~~~~~
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void camSettings(rs2::config *cfg);
+void camSettings(rs2::config *cfg, ConfigReader* p);
 
 void camSettings(rs2::config *cfg, int image_width, int image_heigth, int fps);
 

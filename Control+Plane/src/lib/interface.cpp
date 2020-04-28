@@ -46,12 +46,16 @@ Interface* Interface::getInstance(ConfigReader *parser)
 void Interface::update(Control *ctrl)
 {
     target = cv::Point(ctrl->target.col*scale,
-                        ctrl->target.row*scale);
+                       ctrl->target.row*scale);
 
-    if (ctrl->path_planning)
-        put_path(ctrl->grid, ctrl->target);
-    else
-        put_arrow();
+    if (ctrl->distance_robot_target >= ctrl->distance_threshold){
+        if (ctrl->path_planning)
+            put_path(ctrl->grid, ctrl->target);
+        else
+            put_arrow();
+    } else {
+        idle();
+    }
 
     put_references();
 
@@ -102,6 +106,13 @@ void Interface::put_arrow()
     // Arrow from robot to target
     if ( dist_min < dist_max )
         cv::arrowedLine(interface, arrow_tail, arrow_head, arrowColor, 5);
+}
+
+void Interface::idle(){
+    cv::putText(interface, "The robot has already  ", cv::Point(offset, offset + r), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,255,0), 2);
+    cv::putText(interface, "reach the target", cv::Point(offset, offset + r + 35 * font_scale), 
+                    cv::FONT_HERSHEY_SIMPLEX, font_scale, cv::Scalar(0,255,0), 2);
 }
 
 void Interface::put_obstacle(int p_col, int p_row)

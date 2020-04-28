@@ -39,11 +39,6 @@ class Control{
         class Plane* plane;
         pcl::PointXYZ refPnt;
 
-
-        // ~~~~~~~~~~~ REMOVE IT ~~~~~~~~~~~
-        // std::chrono::microseconds duration;
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
         Control(ConfigReader *p);
         void update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize);
         void update(cv::Point* targetPoint2D, Stream* stream);
@@ -54,7 +49,7 @@ class Control{
         float max_dist, low_threshold, up_threshold, target_threshold;
         int offset_from_targer;
         ushort obstacle_resolution;
-        int grid_size, tmp;
+        int grid_size;
         float scale, look_down;
         float distance_robot_target, distance_threshold;
 
@@ -65,14 +60,6 @@ class Control{
         std::queue<AStar_cell*> frontier;
 
         AStar_cell *current;
-
-
-        // ~~~~~~~~~~~ REMOVE THEM ~~~~~~~~~
-        // float x_start, z_start;
-        // pcl::PointXYZ Point;
-        // std::chrono::_V2::system_clock::time_point start_add_plane, stop_add_plane;
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
         void obstacle_finding(PntCld::Ptr cloud);
         void A_star();

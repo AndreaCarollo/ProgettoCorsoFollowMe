@@ -36,8 +36,8 @@ Stream::Stream(std::string stream_name, rs2::frameset *frames, ConfigReader* cfg
 
 void Stream::update(rs2::frameset *frames)
 {
-    // Internal parameters
-    this->frames = (*frames);
+
+    this->frames = frames;
 
     this->color = frames->get_color_frame();
     this->depth = frames->get_depth_frame();
@@ -56,7 +56,7 @@ void Stream::RGB_acq()
 void Stream::IR_acq()
 {
     // Acquisition of the infrared frame
-    infrared = frames.get_infrared_frame();
+    infrared = frames->get_infrared_frame();
     
     // Convert the rs2 frame in a OpenCV Mat
     this->infrared_frame = cv::Mat( cv::Size(w_IR, h_IR), CV_8UC1, (void *) color.get_data(), cv::Mat::AUTO_STEP);
@@ -110,6 +110,6 @@ void Stream::project_RGB2DEPTH(cv::Point *input)
                                            &color_extrin_to_depth, &depth_extrin_to_color, 
                                            this->rgb_pixel);
     
-    // this->refPnt = cloud->points[(int) ((( depth_pixel[1] - 1 ) * w_IR + depth_pixel[0])/leaf)];
     this->refPnt = cloud->at((((int) depth_pixel[1] - 1) * w_IR + (int) depth_pixel[0])/leaf);
+    
 }

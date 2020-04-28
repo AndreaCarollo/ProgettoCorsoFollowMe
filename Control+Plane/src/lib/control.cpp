@@ -26,13 +26,6 @@ Control::Control(ConfigReader *p)
     
     interface = Interface::getInstance(p);                      // Interface class initialization
     plane = Plane::getInstance(p);                              // Plane class initialization
-
-
-    // ~~~~~~~~~~~ REMOVE THEM ~~~~~~~~~
-    // x_start = -1000.0;
-    // z_start = 200.0;
-    // Point = pcl::PointXYZ(0,0,0);
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
 void Control::update(cv::Point* targetPoint2D, PntCld::Ptr PointCloud, cv::Size cvFrameSize)
@@ -86,44 +79,11 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
 
     stream->PC_acq();
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ REMOVE IT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // start_add_plane = std::chrono::high_resolution_clock::now();
-    // // Add the reference plane
-    // for (int i = 0; i < 400; i++){
-    //     for (int j = 0; j < 500; j++){
-    //         Point.x = x_start+5*i;
-    //         Point.z = z_start+5*j;
-    //         Point.y = -200.0;
-    //         stream->cloud->points.push_back(Point);
-    //     }
-    // }
-    // stop_add_plane = std::chrono::high_resolution_clock::now();
-    // duration = std::chrono::duration_cast<std::chrono::microseconds>(stop_add_plane - start_add_plane);
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
     stream->project_RGB2DEPTH(targetPoint2D);
 
     plane->update(stream->cloud);
 
     refPnt = pcl::transformPoint(stream->refPnt, plane->transf_mtx);
-    
-    // tmp = (refPnt.z)*scale;
-    // if (tmp > robot.row)
-    //     tmp = robot.row;
-    // if (tmp < 0)
-    //     tmp = 0;
-    // target.row = robot.row - tmp;
-
-    // tmp = (refPnt.x)*scale;
-    // if (tmp > robot.col)
-    //     tmp = robot.col;
-    // if (tmp < - robot.col)
-    //     tmp = - robot.col;
-    // target.col = robot.col - tmp;
 
     target.row = robot.row - (refPnt.z)*scale;
     target.col = robot.col - (refPnt.x)*scale;
@@ -136,16 +96,16 @@ void Control::update(cv::Point* targetPoint2D, Stream* stream)
     grid[robot.row][robot.col].visited  = true;
     grid[robot.row][robot.col].cell     = robot;
 
-    obstacle_finding(stream->cloud);
+    if (distance_robot_target >= distance_threshold){
+        obstacle_finding(stream->cloud);
 
-    if ( distance_robot_target >= distance_threshold )
         if (path_planning)
             A_star();
+    }
 
     interface->update(this);
 
 }
-
 
 void Control::obstacle_finding(PntCld::Ptr cloud)
 {
@@ -187,7 +147,6 @@ void Control::obstacle_finding(PntCld::Ptr cloud)
 
 void Control::A_star()
 {
-
     current = &grid[robot.row][robot.col];  // the starting point
     
     frontier.push(current);
@@ -197,7 +156,6 @@ void Control::A_star()
         frontier.pop();
         neighbors(current);
     } while (frontier.size() != 0);
-
 }
 
 void Control::neighbors(AStar_cell* current)
@@ -216,5 +174,4 @@ void Control::neighbors(AStar_cell* current)
                         grid[r+drow][c+dcol].visited    = true;
                         frontier.push(&grid[r+drow][c+dcol]);   
                     }
-
 }

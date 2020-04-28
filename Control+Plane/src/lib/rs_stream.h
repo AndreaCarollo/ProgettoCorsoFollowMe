@@ -14,8 +14,6 @@ class Stream{
 
         std::string stream_name;
 
-        rs2::frameset frames;
-
         int w_RGB, h_RGB;
         int w_IR, h_IR;
 
@@ -37,6 +35,8 @@ class Stream{
     private:
 
         int leaf;
+
+        rs2::frameset* frames;
 
         cv::Mat tmp;
 
