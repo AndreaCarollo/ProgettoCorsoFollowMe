@@ -110,14 +110,6 @@ int main (int argc, char** argv)
 
         
         // ~~~~~~~~~~~~~~~ Visualization Part ~~~~~~~~~~~~~~~~~~~~ //
-
-        // Does not work
-        // Apply transformation mtx to plane and pcl
-        // pcl::transformPointCloud(*stream.cloud, *cloud_tmp, ctrl.plane->transf_mtx);
-        // stream.cloud.swap (cloud_tmp);
-
-        // pcl::transformPointCloud(*ctrl.plane->plane_cloud, *cloud_tmp, ctrl.plane->transf_mtx);
-        // ctrl.plane->plane_cloud.swap (cloud_tmp);
         
         auto start_visu = std::chrono::high_resolution_clock::now();
 
