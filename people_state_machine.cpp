@@ -85,12 +85,12 @@ int main()
 {
     // ---- Import Video ----    //// TO DO: convert into a realsense video streaming
 
-    /* from video */
+    // acquisition video
     // VideoCapture cap(0);
-    VideoCapture cap("../../../Dataset/Markers/vid2.mp4");
-    // VideoCapture cap("../../../Dataset/Our_Video/QR_test3.mp4");
+    // VideoCapture cap("../../../Dataset/Markers/vid2.mp4");
+    VideoCapture cap("../../../Dataset/Our_Video/test5_2.mp4");
 
-    /* from ir camera */
+    // from ir camera
     // VideoCapture cap("../../../Dataset/IR_renamed/test01_04b/%3d.png");
 
     namedWindow("Video", WINDOW_KEEPRATIO);
@@ -147,6 +147,7 @@ int main()
     string trackerType = trackerTypes[7];
     MultiTracker trackers;
     Ptr<Tracker> tracker;
+    MultiTracker empty_tracker;
     // creation of the tracker selected
     if (trackerType == "BOOSTING")
         tracker = TrackerBoosting::create();
@@ -165,13 +166,14 @@ int main()
     if (trackerType == "CSRT")
         tracker = TrackerCSRT::create();
 
-    // some initialization of parameters for state machine
+    // Some initialization of parameters for state machine
     bool *flag_find = new bool;
     bool *flag_mark = new bool;
     bool flag_lost = false;
     bool flag_init_track = true;
 
     int tracker_counter = 0;
+    int counter_lost = 0;
     int max_frame_lost = 25;
 
     Point2d centre_bbox;
@@ -181,10 +183,14 @@ int main()
     float th_SBBox_max = 1.2;
 
     int count_hist = 0;
-    int refresh_hist = 4;
+    int refresh_hist = 30;
+
+    Point2d tmp_delta;
+    int     delta = 0;
 
     // Initial State is DETECT, stay here until find someone to track.
     StateMachine currentState = DETECT;
+    StateMachine prevState = DETECT;
 
     // -----------------------------
     // ---- START STATE MACHINE ----
@@ -203,10 +209,10 @@ int main()
             // upbody_cascade.detectMultiScale(frame, ROIs, 1.5, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
 
             // TO DO: for the next big IF maybe put inside a function in lib
-            // Detection on frame
+            // Detection on frame                                               // TRANSFORM INTO A SWITCH
             if (classifierType == classifierTypes[0])
             {
-                pedestrian_cascade.detectMultiScale(frame, ROIs, 1.4, 28, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+                pedestrian_cascade.detectMultiScale(frame, ROIs, 1.4, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
                 if (ROIs.empty() & classifier_counter == max_frame_try)
                 {
                     classifierType = classifierTypes[1];
@@ -248,11 +254,11 @@ int main()
             {
                 //Keep State
                 currentState = DETECT;
+                prevState = DETECT;
             }
             else
             {
-                // ---- Select Target ----  
-                /* code */
+                // ---- Select Target ----
                 *flag_find = false;
                 int thr_euclidean = 50;
                 int min = remove_ROIs(frame, ROIs, thr_euclidean, flag_find);
@@ -260,7 +266,7 @@ int main()
                 // Check if it is the user through ArUco marker
                 detect_aruco(frame, dict, param, ROIs[min], flag_mark);
 
-                if (*flag_find == true && *flag_mark == true)
+                if (*flag_find == true || *flag_mark == true)
                 {
                     cout << "fuond target" << endl;
                     target.starting_BBOx = ROIs[min];
@@ -276,27 +282,49 @@ int main()
 
                     // go to TRACK
                     currentState = TRACK;
+                    prevState = DETECT;
                 }
                 else
                 {
                     // keep DETECT
                     currentState = DETECT;
+                    prevState = DETECT;
                 }
             }
             break;
         case TRACK:
             cout << "TRACK" << endl;
 
-            /* code */
             // set to false the lost flag
             flag_lost = false;
 
             // Update tracker
             trackers.update(frame);
-            if (count_hist == refresh_hist && tracker_counter != max_frame_lost)
+            
+            // Check if the tracker falls by jumping somewhere
+            tmp_delta = target.pos2D_story[-1] - target.pos2D_story[-2];
+            delta     = abs(tmp_delta.x) + abs(tmp_delta.y);
+            if ( delta > 15 ){
+                flag_lost = true;
+            }
+            else
             {
+                flag_lost = false;
+            }
+
+            // Update the target class & it's histogram every "refresh_hist" frames
+            if (count_hist == refresh_hist && tracker_counter != max_frame_lost && flag_lost == false)
+            {
+                cv::MatND old_hist = target.histogram;
                 target.target_update(frame, &trackers, 1);
                 count_hist = 0;
+                // compare new hist with previous, if different very much -> LOST_TRACK
+                double comparison = cv::compareHist(target.histogram, old_hist, 1);
+                if (comparison < 0.75)
+                {
+                    flag_lost = true;
+                }
+
             }
             else
             {
@@ -304,7 +332,6 @@ int main()
             }
 
             // TO DO: check if lost target
-            /* code */
             // centre_bbox = (target_bbox.br() - target_bbox.tl()) / 2;
             w_TAR = target.boundingBox.width;
             h_TAR = target.boundingBox.height;
@@ -312,7 +339,7 @@ int main()
             h_SBBox = target.starting_BBOx.height;
 
             // ---- Check dimension of tracked box ----
-            if (tracker_counter == max_frame_lost)
+            if (tracker_counter == max_frame_lost & flag_lost == false)
             {
                 if ((w_TAR <= th_SBBox_min * w_SBBox) || (w_TAR >= th_SBBox_max * w_SBBox) ||
                     (h_TAR <= th_SBBox_min * h_SBBox) || (h_TAR >= th_SBBox_max * h_SBBox))
@@ -328,7 +355,8 @@ int main()
                 count_hist++;
 
                 currentState = TRACK;
-                cout << ">> stay on TRACK" << endl;
+                prevState = TRACK;
+                // cout << ">> stay on TRACK" << endl;
 
                 // --> state machine: robot moving + avoid ostacles
                 // ...
@@ -338,6 +366,7 @@ int main()
                 cout << ">> go to LOST_TRACK" << endl;
                 tracker_counter = 0;
                 currentState = LOST_TRACK;
+                prevState = TRACK;
             }
 
             break;
@@ -346,9 +375,9 @@ int main()
             cout << "LOST_TRACK" << endl;
             // TO DO: need to find back the target person on the frame
             /* IDEA:
-            - use last working detector
-            - detection aroud the area where lost -> take centroid of 5 frame before lost flag on
-            - compare new detection hist with previous target hist
+            ok - use last working detector
+            -- - detection aroud the area where lost -> take centroid of 5 frame before lost flag on
+            ?  - compare new detection hist with previous target hist
             */
 
             //--------------------------------------
@@ -361,7 +390,7 @@ int main()
             //---- Detection ------------
             if (classifierType == classifierTypes[0])
             {
-                pedestrian_cascade.detectMultiScale(frame, ROIs, 1.4, 28, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+                pedestrian_cascade.detectMultiScale(frame, ROIs, 1.4, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
                 if (ROIs.empty() & classifier_counter == max_frame_try)
                 {
                     classifierType = classifierTypes[1];
@@ -399,7 +428,7 @@ int main()
                 }
             }
 
-            if (!(ROIs.empty()))
+            if (counter_lost != 100 && !(ROIs.empty()))
             {
                 // -- do comparison hist
                 vector<double> compare_hist;
@@ -408,32 +437,50 @@ int main()
                     compare_hist.push_back(comparison_hist(frame, target.histogram, ROIs[i]));
                 }
                 int maxElementIndex = std::max_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
-                int minElementIndex = std::min_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
-                Rect2d New_ROI = ROIs[maxElementIndex];
+                // int minElementIndex = std::min_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
 
-                // -- update tracker & target, go to TRACK
-                target.starting_BBOx = New_ROI;
-                trackers.clear();
-                trackers.add(tracker, frame, target.starting_BBOx);
-                trackers.update(frame);
-                target.target_update(frame, &trackers, 1);
-                count_hist = 0;
-                currentState = TRACK;
+                if (compare_hist[maxElementIndex] > 0.8)
+                {
+                    Rect2d New_ROI = ROIs[maxElementIndex];
+
+                    // -- update tracker & target, go to TRACK
+                    target.starting_BBOx = New_ROI;
+                    trackers = empty_tracker;
+                    trackers.add(tracker, frame, target.starting_BBOx);
+                    trackers.update(frame);
+                    target.target_update(frame, &trackers, 1);
+                    count_hist   = 0;
+                    counter_lost = 0;
+                    currentState = TRACK;
+                    prevState    = LOST_TRACK;
+                }
+                else
+                {
+                    counter_lost++;
+                }
+            }
+            else if (counter_lost == 100)
+            {
+                // if fallisco il rematching -> go to DETECT
+                cout << "lost counter " << counter_lost << endl;
+                counter_lost = 0;
+                currentState = DETECT;
+                prevState    = LOST_TRACK;
             }
             else
             {
-                // if fallisco il rematching -> go to DETECT
-                currentState = DETECT;
+                cout << "lost counter " << counter_lost << endl;
+                currentState = LOST_TRACK;
+                prevState    = LOST_TRACK;
             }
 
             break;
-        default:
-            currentState = DETECT;
-            break;
+        // default:
+        //     currentState = DETECT;
+        //     break;
         }
 
         // --- Show Stuff
-        /* code */
         if (!(ROIs.empty()))
         {
             for (int j = 0; j < ROIs.size(); j++)
@@ -443,7 +490,7 @@ int main()
             cv::rectangle(frame, target.boundingBox, Scalar(0, 0, 255), 1, 8, 0);
         }
         cv::imshow("Video", frame);
-        if (waitKey(1) == 27)
+        if (waitKey(10) == 27)
         {
             return 0;
         }
