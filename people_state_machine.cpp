@@ -7,18 +7,21 @@
 
 #include "./person.hpp"
 
+#include <chrono>
 #include <ctime>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <cfloat>
 #include <cmath>
+#include <numeric>
 
 using namespace cv;
 using namespace std;
 
 // ---------------------------------
 // ---- STRUTTURA TARGET -----------
+// ---------------------------------
 
 struct Target
 {
@@ -56,6 +59,7 @@ struct Target
 
 // --------------------------------------
 // ---- STATE MACHINE DEFINITION --------
+// --------------------------------------
 
 enum StateMachine
 {
@@ -77,9 +81,9 @@ enum DetectMachine
     UPPERBODY
 };
 
-// ----------------------------------------------------------------------------------------------
-// ---- MAIN ---- MAIN ---- MAIN ---- MAIN ---- MAIN ---- MAIN ---- MAIN ---- MAIN ---- MAIN ----
-// ----------------------------------------------------------------------------------------------
+// -----------------------------------
+// ---- MAIN ---- MAIN ---- MAIN ----
+// -----------------------------------
 
 int main()
 {
@@ -88,24 +92,21 @@ int main()
     // acquisition video
     // VideoCapture cap(0);
     // VideoCapture cap("../../../Dataset/Markers/vid2.mp4");
-    VideoCapture cap("../../../Dataset/Our_Video/test5_2.mp4");
-
-    // from ir camera
-    // VideoCapture cap("../../../Dataset/IR_renamed/test01_04b/%3d.png");
+    VideoCapture cap("../../../Dataset/Our_Video/test5_2.mp4"); //test3.mp4"); //
 
     namedWindow("Video", WINDOW_KEEPRATIO);
     resizeWindow("Video", 960, 540);
     // Control open video
     if (!cap.isOpened())
     {
-        cout << "Could not read video file" << endl;
+        std::cout << "Could not read video file" << endl;
         return 1;
     }
 
     // ---- Frames & parameters ----
     Mat frame;
     Mat portion_frame;
-    vector<Rect> ROIs;
+    vector<Rect> ROIs, TMP_ROIs;
     Rect2d ROI;
 
     // ---- Create TARGET ----
@@ -128,9 +129,9 @@ int main()
 
     // ---- Classifier Types & Flags ----
     string classifierTypes[3] = {"PEDESTRIAN", "FULBODY", "UPPERBODY"};
-    string classifierType = classifierTypes[0];
+    string classifierType = classifierTypes[1];
     int classifier_counter = 0;
-    int max_frame_try = 5;
+    int max_frame_try = 600000;
 
     // ArUco marker dictionary and paramters
     Ptr<aruco::Dictionary> dict = aruco::getPredefinedDictionary(aruco::DICT_5X5_50);
@@ -141,30 +142,29 @@ int main()
     int user_ID = 25;
 
     // ---- Tracker Initialization ---- TO DO: can be put in a function
-
-    string trackerTypes[8] = {"BOOSTING", "MIL", "KCF", "TLD",
-                              "MEDIANFLOW", "GOTURN", "MOSSE", "CSRT"};
-    string trackerType = trackerTypes[7];
+    // string trackerTypes[8] = {"BOOSTING", "MIL", "KCF", "TLD",
+                            //   "MEDIANFLOW", "GOTURN", "MOSSE", "CSRT"};
+    // string trackerType = trackerTypes[7];
     MultiTracker trackers;
-    Ptr<Tracker> tracker;
-    MultiTracker empty_tracker;
+    Ptr<Tracker> tracker = TrackerCSRT::create();
+
     // creation of the tracker selected
-    if (trackerType == "BOOSTING")
-        tracker = TrackerBoosting::create();
-    if (trackerType == "MIL")
-        tracker = TrackerMIL::create();
-    if (trackerType == "KCF")
-        tracker = TrackerKCF::create();
-    if (trackerType == "TLD")
-        tracker = TrackerTLD::create();
-    if (trackerType == "MEDIANFLOW")
-        tracker = TrackerMedianFlow::create();
-    if (trackerType == "GOTURN")
-        tracker = TrackerGOTURN::create();
-    if (trackerType == "MOSSE")
-        tracker = TrackerMOSSE::create();
-    if (trackerType == "CSRT")
-        tracker = TrackerCSRT::create();
+    // if (trackerType == "BOOSTING")
+    //     tracker = TrackerBoosting::create();
+    // if (trackerType == "MIL")
+    //     tracker = TrackerMIL::create();
+    // if (trackerType == "KCF")
+    //     tracker = TrackerKCF::create();
+    // if (trackerType == "TLD")
+    //     tracker = TrackerTLD::create();
+    // if (trackerType == "MEDIANFLOW")
+    //     tracker = TrackerMedianFlow::create();
+    // if (trackerType == "GOTURN")
+    //     tracker = TrackerGOTURN::create();
+    // if (trackerType == "MOSSE")
+    //     tracker = TrackerMOSSE::create();
+    // if (trackerType == "CSRT")
+    //     tracker = TrackerCSRT::create();
 
     // Some initialization of parameters for state machine
     bool *flag_find = new bool;
@@ -179,37 +179,47 @@ int main()
     Point2d centre_bbox;
     int h_SBBox, w_SBBox;
     int h_TAR, w_TAR;
-    float th_SBBox_min = 0.7;
-    float th_SBBox_max = 1.2;
+    float th_SBBox_min = 0.5;
+    float th_SBBox_max = 1.5;
 
     int count_hist = 0;
     int refresh_hist = 30;
 
     Point2d tmp_delta;
-    int     delta = 0;
+    int delta = 0;
+    int it_story;
+
+    vector<float> overlap_areas;
+    int index_pos;
+    float av_pos_x = 0;
+    float av_pos_y = 0;
 
     // Initial State is DETECT, stay here until find someone to track.
     StateMachine currentState = DETECT;
     StateMachine prevState = DETECT;
 
+    // Other for Time Analysis
+    std::vector<float> ts_det, ts_track, ts_visu;
+    auto start = chrono::high_resolution_clock::now();
+    auto end = chrono::high_resolution_clock::now();
+    double time_taken = 0;
+
     // -----------------------------
     // ---- START STATE MACHINE ----
     // -----------------------------
-    while (true)
+    while ((cap >> frame).grab())
     {
-        cap >> frame;
+
         switch (currentState)
         {
         case DETECT:
-            cout << "DETECT" << endl;
-            /* code */
-            // cascades used for tuning values
-            // pedestrian_cascade.detectMultiScale(frame, ROIs, 1.5, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-            // fullbody_cascade.detectMultiScale(frame, ROIs, 1.05, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-            // upbody_cascade.detectMultiScale(frame, ROIs, 1.5, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+            // std::cout << "DETECT" << endl;
+            cv::putText(frame, "DETECT", cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2);
 
-            // TO DO: for the next big IF maybe put inside a function in lib
-            // Detection on frame                                               // TRANSFORM INTO A SWITCH
+            // start chrono
+            start = chrono::high_resolution_clock::now();
+
+            // Detection on frame                                  // TODO: COnvert into a Switch
             if (classifierType == classifierTypes[0])
             {
                 pedestrian_cascade.detectMultiScale(frame, ROIs, 1.4, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
@@ -250,6 +260,12 @@ int main()
                 }
             }
 
+            // end chrono
+            end = chrono::high_resolution_clock::now();
+            // eval time taken
+            time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
+            ts_det.push_back((float)time_taken / 1000.0);
+
             if (ROIs.empty())
             {
                 //Keep State
@@ -260,18 +276,27 @@ int main()
             {
                 // ---- Select Target ----
                 *flag_find = false;
-                int thr_euclidean = 50;
+                // usign euclidean distance from center
+                int thr_euclidean = 100;
+
+                for (int j = 0; j < ROIs.size(); j++)
+                {
+                    cv::rectangle(frame, ROIs[j], Scalar(255, 0, 0), 3, 8, 0);
+                }
+
                 int min = remove_ROIs(frame, ROIs, thr_euclidean, flag_find);
 
                 // Check if it is the user through ArUco marker
                 detect_aruco(frame, dict, param, ROIs[min], flag_mark);
 
+                // into the if set && if use the marker
                 if (*flag_find == true || *flag_mark == true)
                 {
-                    cout << "fuond target" << endl;
+                    cout << "found target" << endl;
                     target.starting_BBOx = ROIs[min];
 
                     // initialize the tracker
+                    tracker = TrackerCSRT::create();
                     trackers.clear();
                     trackers.add(tracker, frame, target.starting_BBOx);
                     trackers.update(frame);
@@ -293,25 +318,88 @@ int main()
             }
             break;
         case TRACK:
-            cout << "TRACK" << endl;
+            // cout << "TRACK" << endl;
+            cv::putText(frame, "TRACK", cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2);
 
             // set to false the lost flag
             flag_lost = false;
 
+            // start chrono
+            start = chrono::high_resolution_clock::now();
+
             // Update tracker
             trackers.update(frame);
-            
-            // Check if the tracker falls by jumping somewhere
-            tmp_delta = target.pos2D_story[-1] - target.pos2D_story[-2];
-            delta     = abs(tmp_delta.x) + abs(tmp_delta.y);
-            if ( delta > 15 ){
-                flag_lost = true;
-            }
-            else
-            {
-                flag_lost = false;
-            }
 
+            // end chrono
+            end = chrono::high_resolution_clock::now();
+            // eval time taken
+            time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
+            ts_track.push_back((float)time_taken / 1000.0);
+
+            // Check if the tracker falls by jumping somewhere
+            it_story = target.pos2D_story.size() - 1;
+            if (it_story >= 3)
+            {
+                tmp_delta = (Point2d)(target.pos2D_story[it_story].x - target.pos2D_story[it_story - 1].x, target.pos2D_story[it_story].y - target.pos2D_story[it_story - 1].y);
+                delta = std::sqrt(tmp_delta.x * tmp_delta.x + tmp_delta.y * tmp_delta.y);
+                std::cout << " Delta: " << delta << endl;
+                if (delta < 69)
+                {
+
+                    pedestrian_cascade.detectMultiScale(frame, TMP_ROIs, 1.4, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+
+                    if (!(TMP_ROIs.empty()))
+                    {
+                        for (int i = 0; i < TMP_ROIs.size(); i++)
+                        {
+                            overlap_areas.push_back((target.boundingBox & TMP_ROIs[i]).area());
+                        }
+
+                        if (*max_element(overlap_areas.begin(), overlap_areas.end()) < target.boundingBox.area() / 4.0)
+                        {
+                            flag_lost = true;
+                            std::cout << " --- lost da jump 1" << endl;
+                        }
+                    }
+                    overlap_areas.clear();
+
+                    // else if (TMP_ROIs.empty() && target.pos2D_story.size() > 10)
+                    // {
+                    //     index_pos = 10;
+
+                    //     av_pos_x = 0;
+                    //     av_pos_y = 0;
+
+                    //     for (int j = 0; j < index_pos; j++)
+                    //     {
+                    //         // compute sum position x y of story
+                    //         av_pos_x += target.pos2D_story[target.pos2D_story.size()-j].x;
+                    //         av_pos_y += target.pos2D_story[target.pos2D_story.size()-j].y;
+                    //     }
+                    //     // compute average pos
+                    //     av_pos_x *= 0.1;
+                    //     av_pos_y *= 0.1;
+
+                    //     // compare average position with gap
+                    //     if ((av_pos_x < target.pos2D_story[-1].x + 640 * 0.1 || av_pos_x > target.pos2D_story[-1].x - 640 * 0.1) &&
+                    //         (av_pos_y < target.pos2D_story[-1].y + 480 * 0.1 || av_pos_y > target.pos2D_story[-1].y - 480 * 0.1))
+                    //     {
+                    //         std::cout << " --- lost da const pos:" << av_pos_x << " , " << av_pos_y << endl;
+                    //         flag_lost = true;
+                    //     }
+
+                    // }
+                }
+                else if (delta > 70)
+                {
+                    std::cout << " --- lost da jump 2, Delta :" << delta << endl;
+                    flag_lost = true;
+                }
+                else
+                {
+                    flag_lost = false;
+                }
+            }
             // Update the target class & it's histogram every "refresh_hist" frames
             if (count_hist == refresh_hist && tracker_counter != max_frame_lost && flag_lost == false)
             {
@@ -320,11 +408,12 @@ int main()
                 count_hist = 0;
                 // compare new hist with previous, if different very much -> LOST_TRACK
                 double comparison = cv::compareHist(target.histogram, old_hist, 1);
-                if (comparison < 0.75)
+                std::cout << comparison << endl;
+                if (comparison < 2)
                 {
+                    std::cout << " --- lost da hist comp:" << comparison << endl;
                     flag_lost = true;
                 }
-
             }
             else
             {
@@ -344,6 +433,7 @@ int main()
                 if ((w_TAR <= th_SBBox_min * w_SBBox) || (w_TAR >= th_SBBox_max * w_SBBox) ||
                     (h_TAR <= th_SBBox_min * h_SBBox) || (h_TAR >= th_SBBox_max * h_SBBox))
                 {
+                    std::cout << " --- lost da change dimension from starting box" << endl;
                     flag_lost = true;
                 }
                 tracker_counter = 0;
@@ -356,14 +446,13 @@ int main()
 
                 currentState = TRACK;
                 prevState = TRACK;
-                // cout << ">> stay on TRACK" << endl;
 
                 // --> state machine: robot moving + avoid ostacles
                 // ...
             }
             else
             {
-                cout << ">> go to LOST_TRACK" << endl;
+                std::cout << ">> go to LOST_TRACK" << endl;
                 tracker_counter = 0;
                 currentState = LOST_TRACK;
                 prevState = TRACK;
@@ -372,7 +461,8 @@ int main()
             break;
 
         case LOST_TRACK:
-            cout << "LOST_TRACK" << endl;
+            // cout << "LOST_TRACK" << endl;
+            cv::putText(frame, "LOST-TRACK", cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2);
             // TO DO: need to find back the target person on the frame
             /* IDEA:
             ok - use last working detector
@@ -385,7 +475,7 @@ int main()
 
             /* code */
             // TODO:
-            // Mat portion_frame = crop the frame ()
+            // Mat portion_frame = crop the frame () --> meglio di no
 
             //---- Detection ------------
             if (classifierType == classifierTypes[0])
@@ -428,7 +518,7 @@ int main()
                 }
             }
 
-            if (counter_lost != 100 && !(ROIs.empty()))
+            if (counter_lost != 10 && !(ROIs.empty()))
             {
                 // -- do comparison hist
                 vector<double> compare_hist;
@@ -439,64 +529,102 @@ int main()
                 int maxElementIndex = std::max_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
                 // int minElementIndex = std::min_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
 
-                if (compare_hist[maxElementIndex] > 0.8)
+                if (compare_hist[maxElementIndex] > 5)
                 {
                     Rect2d New_ROI = ROIs[maxElementIndex];
 
                     // -- update tracker & target, go to TRACK
                     target.starting_BBOx = New_ROI;
-                    trackers = empty_tracker;
+                    tracker = TrackerCSRT::create();
+                    trackers.clear();
                     trackers.add(tracker, frame, target.starting_BBOx);
                     trackers.update(frame);
                     target.target_update(frame, &trackers, 1);
-                    count_hist   = 0;
+                    count_hist = 0;
                     counter_lost = 0;
                     currentState = TRACK;
-                    prevState    = LOST_TRACK;
+                    prevState = LOST_TRACK;
                 }
                 else
                 {
                     counter_lost++;
                 }
             }
-            else if (counter_lost == 100)
+            else if (counter_lost == 10)
             {
                 // if fallisco il rematching -> go to DETECT
                 cout << "lost counter " << counter_lost << endl;
+                trackers.clear();
+                tracker = TrackerCSRT::create();
                 counter_lost = 0;
                 currentState = DETECT;
-                prevState    = LOST_TRACK;
+                prevState = LOST_TRACK;
             }
             else
             {
                 cout << "lost counter " << counter_lost << endl;
+                counter_lost++;
                 currentState = LOST_TRACK;
-                prevState    = LOST_TRACK;
+                prevState = LOST_TRACK;
             }
 
             break;
-        // default:
-        //     currentState = DETECT;
-        //     break;
+            // default:
+            //     currentState = DETECT;
+            //     break;
         }
 
         // --- Show Stuff
-        if (!(ROIs.empty()))
+        // start chrono
+        start = chrono::high_resolution_clock::now();
+
+        // print rectangles on the frame
+        if (!(ROIs.empty()) && currentState != TRACK)
         {
             for (int j = 0; j < ROIs.size(); j++)
             {
                 cv::rectangle(frame, ROIs[j], Scalar(255, 0, 0), 3, 8, 0);
             }
+            cv::rectangle(frame, target.boundingBox, Scalar(0, 255, 255), 1, 8, 0);
+        }
+        else if (currentState == TRACK)
+        {
             cv::rectangle(frame, target.boundingBox, Scalar(0, 0, 255), 1, 8, 0);
         }
+
+        ROIs.clear();
+
+        // plot di debug
+        if (!(TMP_ROIs.empty()))
+        {
+            for (int j = 0; j < TMP_ROIs.size(); j++)
+            {
+                cv::rectangle(frame, TMP_ROIs[j], Scalar(255, 255, 0), 3, 8, 0);
+            }
+            TMP_ROIs.clear();
+        }
+
         cv::imshow("Video", frame);
-        if (waitKey(10) == 27)
+
+        // stop chrono
+        end = chrono::high_resolution_clock::now();
+        // eval time taken
+        time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
+        ts_visu.push_back((float)time_taken / 1000.0);
+
+        if (waitKey(1) == 27) //1000 / 30
         {
             return 0;
         }
     }
-}
 
-// --------------------------------------
-// ----------- Functions ----------------
-//
+    float t_det = std::accumulate(ts_det.begin(), ts_det.end(), 0.0) / ts_det.size();
+    float t_track = std::accumulate(ts_track.begin(), ts_track.end(), 0.0) / ts_track.size();
+    float t_visu = std::accumulate(ts_visu.begin(), ts_visu.end(), 0.0) / ts_visu.size();
+
+    std::cout << "Timing :" << endl;
+    std::cout << "   Detection time     :  " << t_det << "\t[ms]" << endl;
+    std::cout << "   Tracking  time     :  " << t_track << "\t[ms]" << endl;
+    std::cout << endl;
+    std::cout << "   Visualization time :  " << t_visu << "\t[ms]" << endl;
+}
