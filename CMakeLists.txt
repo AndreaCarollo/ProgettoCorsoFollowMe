@@ -21,6 +21,7 @@ add_definitions(  ${PCL_DEFINITIONS} )
 ## select executable
 # add_executable(People peopledect.cpp)
 add_executable(People people_state_machine.cpp)
+add_executable(Demo_dect Demo_Detection.cpp)
 
 ## add library
 add_library(Person person.cpp)
@@ -32,3 +33,7 @@ target_link_libraries(People ${realsense2_LIBRARY})
 # target_link_libraries(People ${PCL_LIBRARIES} )
 target_link_libraries(People Person)
 # target_link_libraries(People AcqLib)
+
+
+target_link_libraries(Demo_dect ${OpenCV_LIBS})
+target_link_libraries(Demo_dect Person)

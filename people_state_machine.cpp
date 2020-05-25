@@ -85,18 +85,19 @@ enum DetectMachine
 // ---- MAIN ---- MAIN ---- MAIN ----
 // -----------------------------------
 
-int main()
+int main(int argc, char **argv)
 {
     // ---- Import Video ----    //// TO DO: convert into a realsense video streaming
 
     // acquisition video
-    // VideoCapture cap(0);
-    // VideoCapture cap("../../../Dataset/Markers/vid2.mp4");
-    VideoCapture cap("../../../Dataset/Our_Video/test5_2.mp4"); //test3.mp4"); //
+    // VideoCapture cap("../../../Dataset/Our_Video/test7.mp4");
+    VideoCapture cap(argv[1]);
 
+    // initialization of windows image show
     namedWindow("Video", WINDOW_KEEPRATIO);
     resizeWindow("Video", 960, 540);
-    // Control open video
+
+    // check open video
     if (!cap.isOpened())
     {
         std::cout << "Could not read video file" << endl;
@@ -131,7 +132,7 @@ int main()
     string classifierTypes[3] = {"PEDESTRIAN", "FULBODY", "UPPERBODY"};
     string classifierType = classifierTypes[1];
     int classifier_counter = 0;
-    int max_frame_try = 600000;
+    int max_frame_try = 200;
 
     // ArUco marker dictionary and paramters
     Ptr<aruco::Dictionary> dict = aruco::getPredefinedDictionary(aruco::DICT_5X5_50);
@@ -142,84 +143,72 @@ int main()
     int user_ID = 25;
 
     // ---- Tracker Initialization ---- TO DO: can be put in a function
-    // string trackerTypes[8] = {"BOOSTING", "MIL", "KCF", "TLD",
-                            //   "MEDIANFLOW", "GOTURN", "MOSSE", "CSRT"};
-    // string trackerType = trackerTypes[7];
     MultiTracker trackers;
     Ptr<Tracker> tracker = TrackerCSRT::create();
 
-    // creation of the tracker selected
-    // if (trackerType == "BOOSTING")
-    //     tracker = TrackerBoosting::create();
-    // if (trackerType == "MIL")
-    //     tracker = TrackerMIL::create();
-    // if (trackerType == "KCF")
-    //     tracker = TrackerKCF::create();
-    // if (trackerType == "TLD")
-    //     tracker = TrackerTLD::create();
-    // if (trackerType == "MEDIANFLOW")
-    //     tracker = TrackerMedianFlow::create();
-    // if (trackerType == "GOTURN")
-    //     tracker = TrackerGOTURN::create();
-    // if (trackerType == "MOSSE")
-    //     tracker = TrackerMOSSE::create();
-    // if (trackerType == "CSRT")
-    //     tracker = TrackerCSRT::create();
-
     // Some initialization of parameters for state machine
-    bool *flag_find = new bool;
-    bool *flag_mark = new bool;
-    bool flag_lost = false;
-    bool flag_init_track = true;
+    bool *flag_find = new bool;  // flag for find detector
+    bool *flag_mark = new bool;  // flag for find the marker
+    bool flag_lost = false;      // flag for broken tracker
+    bool flag_init_track = true; // flag for initialization of tracker
 
-    int tracker_counter = 0;
+    int tracker_counter = 0; // counter for tracker state
     int counter_lost = 0;
-    int max_frame_lost = 25;
+    int max_counter_lost = 60;
+    int max_frame_lost = 50; // limit for cycle on re-identification
+    float thr_hist_comp = 5; // threshold of comparison hist
 
+    int thr_euclidean = 100; // parameter for euclidean distance from center
+
+    // supplemental parameters
     Point2d centre_bbox;
     int h_SBBox, w_SBBox;
     int h_TAR, w_TAR;
     float th_SBBox_min = 0.5;
     float th_SBBox_max = 1.5;
 
+    // counter for refreshing and checking histogram of target on tracking state
     int count_hist = 0;
     int refresh_hist = 30;
 
+    // variables for checking jumping of tracker
     Point2d tmp_delta;
     int delta = 0;
     int it_story;
-
     vector<float> overlap_areas;
     int index_pos;
     float av_pos_x = 0;
     float av_pos_y = 0;
 
-    // Initial State is DETECT, stay here until find someone to track.
+    // Initialize Current State with DETECT
     StateMachine currentState = DETECT;
     StateMachine prevState = DETECT;
 
-    // Other for Time Analysis
+    // parameters for Time Analysis
     std::vector<float> ts_det, ts_track, ts_visu;
     auto start = chrono::high_resolution_clock::now();
     auto end = chrono::high_resolution_clock::now();
     double time_taken = 0;
 
-    // -----------------------------
-    // ---- START STATE MACHINE ----
-    // -----------------------------
+    // frame indicator
+    int index = 0;
+
+    // ----------------------------------------------------------
+    // ---- START STATE MACHINE ---------------------------------
+    // ----------------------------------------------------------
     while ((cap >> frame).grab())
     {
 
         switch (currentState)
         {
         case DETECT:
-            // std::cout << "DETECT" << endl;
-            cv::putText(frame, "DETECT", cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2);
+            // print state on the frame
+            cv::putText(frame, "DETECT", cv::Point(10, 40), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2);
 
             // start chrono
             start = chrono::high_resolution_clock::now();
 
-            // Detection on frame                                  // TODO: COnvert into a Switch
+            // detection on frame                                  // TODO: COnvert into a Switch
             if (classifierType == classifierTypes[0])
             {
                 pedestrian_cascade.detectMultiScale(frame, ROIs, 1.4, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
@@ -266,9 +255,10 @@ int main()
             time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
             ts_det.push_back((float)time_taken / 1000.0);
 
+            // check if the detector find people on the frame
             if (ROIs.empty())
             {
-                //Keep State
+                // keep current state
                 currentState = DETECT;
                 prevState = DETECT;
             }
@@ -277,13 +267,10 @@ int main()
                 // ---- Select Target ----
                 *flag_find = false;
                 // usign euclidean distance from center
-                int thr_euclidean = 100;
-
                 for (int j = 0; j < ROIs.size(); j++)
                 {
                     cv::rectangle(frame, ROIs[j], Scalar(255, 0, 0), 3, 8, 0);
                 }
-
                 int min = remove_ROIs(frame, ROIs, thr_euclidean, flag_find);
 
                 // Check if it is the user through ArUco marker
@@ -295,7 +282,7 @@ int main()
                     cout << "found target" << endl;
                     target.starting_BBOx = ROIs[min];
 
-                    // initialize the tracker
+                    // initialize the tracker with the choosen bounding box
                     tracker = TrackerCSRT::create();
                     trackers.clear();
                     trackers.add(tracker, frame, target.starting_BBOx);
@@ -318,36 +305,40 @@ int main()
             }
             break;
         case TRACK:
-            // cout << "TRACK" << endl;
-            cv::putText(frame, "TRACK", cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2);
+            // print state on the frame
+            cv::putText(frame, "TRACK", cv::Point(10, 40), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2);
 
             // set to false the lost flag
             flag_lost = false;
 
-            // start chrono
+            // start chrono for tracker update
             start = chrono::high_resolution_clock::now();
 
-            // Update tracker
+            // update tracker
             trackers.update(frame);
 
-            // end chrono
+            // end chrono for tracker update
             end = chrono::high_resolution_clock::now();
+
             // eval time taken
             time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
             ts_track.push_back((float)time_taken / 1000.0);
 
-            // Check if the tracker falls by jumping somewhere
+            // check if the tracker falls by jumping somewhere
             it_story = target.pos2D_story.size() - 1;
             if (it_story >= 3)
             {
+                // evaluate the distance between the last two positions
                 tmp_delta = (Point2d)(target.pos2D_story[it_story].x - target.pos2D_story[it_story - 1].x, target.pos2D_story[it_story].y - target.pos2D_story[it_story - 1].y);
                 delta = std::sqrt(tmp_delta.x * tmp_delta.x + tmp_delta.y * tmp_delta.y);
-                std::cout << " Delta: " << delta << endl;
-                if (delta < 69)
-                {
 
+                // if stay around the same position
+                if (delta < 30)
+                {
+                    // check for people detection
                     pedestrian_cascade.detectMultiScale(frame, TMP_ROIs, 1.4, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
 
+                    // check overlapping area
                     if (!(TMP_ROIs.empty()))
                     {
                         for (int i = 0; i < TMP_ROIs.size(); i++)
@@ -355,52 +346,29 @@ int main()
                             overlap_areas.push_back((target.boundingBox & TMP_ROIs[i]).area());
                         }
 
+                        // if the tracker do not overlapp any detection box, go to LOST TRACK
                         if (*max_element(overlap_areas.begin(), overlap_areas.end()) < target.boundingBox.area() / 4.0)
                         {
                             flag_lost = true;
-                            std::cout << " --- lost da jump 1" << endl;
+                            std::cout << " --- lost da jump 1, Delta :" << delta << endl;
                         }
                     }
+                    // free the vector
                     overlap_areas.clear();
-
-                    // else if (TMP_ROIs.empty() && target.pos2D_story.size() > 10)
-                    // {
-                    //     index_pos = 10;
-
-                    //     av_pos_x = 0;
-                    //     av_pos_y = 0;
-
-                    //     for (int j = 0; j < index_pos; j++)
-                    //     {
-                    //         // compute sum position x y of story
-                    //         av_pos_x += target.pos2D_story[target.pos2D_story.size()-j].x;
-                    //         av_pos_y += target.pos2D_story[target.pos2D_story.size()-j].y;
-                    //     }
-                    //     // compute average pos
-                    //     av_pos_x *= 0.1;
-                    //     av_pos_y *= 0.1;
-
-                    //     // compare average position with gap
-                    //     if ((av_pos_x < target.pos2D_story[-1].x + 640 * 0.1 || av_pos_x > target.pos2D_story[-1].x - 640 * 0.1) &&
-                    //         (av_pos_y < target.pos2D_story[-1].y + 480 * 0.1 || av_pos_y > target.pos2D_story[-1].y - 480 * 0.1))
-                    //     {
-                    //         std::cout << " --- lost da const pos:" << av_pos_x << " , " << av_pos_y << endl;
-                    //         flag_lost = true;
-                    //     }
-
-                    // }
                 }
-                else if (delta > 70)
+                // if the distance is greater than delta_max, go to LOST TRACK
+                else if( delta > 70 )
                 {
                     std::cout << " --- lost da jump 2, Delta :" << delta << endl;
                     flag_lost = true;
                 }
-                else
-                {
+                else{
                     flag_lost = false;
                 }
             }
-            // Update the target class & it's histogram every "refresh_hist" frames
+
+            // Update the target class & it's histogram every "refresh_hist" frames,
+            // only if the previous check do not imply the change of state
             if (count_hist == refresh_hist && tracker_counter != max_frame_lost && flag_lost == false)
             {
                 cv::MatND old_hist = target.histogram;
@@ -462,20 +430,7 @@ int main()
 
         case LOST_TRACK:
             // cout << "LOST_TRACK" << endl;
-            cv::putText(frame, "LOST-TRACK", cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2);
-            // TO DO: need to find back the target person on the frame
-            /* IDEA:
-            ok - use last working detector
-            -- - detection aroud the area where lost -> take centroid of 5 frame before lost flag on
-            ?  - compare new detection hist with previous target hist
-            */
-
-            //--------------------------------------
-            //---- Extract the portion of frame ----
-
-            /* code */
-            // TODO:
-            // Mat portion_frame = crop the frame () --> meglio di no
+            cv::putText(frame, "LOST-TRACK", cv::Point(10, 40), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 2); 
 
             //---- Detection ------------
             if (classifierType == classifierTypes[0])
@@ -518,28 +473,33 @@ int main()
                 }
             }
 
-            if (counter_lost != 10 && !(ROIs.empty()))
+            if (counter_lost != max_counter_lost && !(ROIs.empty()))
             {
-                // -- do comparison hist
+                // compare the histograms
                 vector<double> compare_hist;
                 for (int i = 0; i < ROIs.size(); i++)
                 {
                     compare_hist.push_back(comparison_hist(frame, target.histogram, ROIs[i]));
                 }
+                // find maximum element of the matching
                 int maxElementIndex = std::max_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
-                // int minElementIndex = std::min_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
 
-                if (compare_hist[maxElementIndex] > 5)
+                if (compare_hist[maxElementIndex] > thr_hist_comp)
                 {
                     Rect2d New_ROI = ROIs[maxElementIndex];
 
                     // -- update tracker & target, go to TRACK
                     target.starting_BBOx = New_ROI;
+                    // clear the tracker
                     tracker = TrackerCSRT::create();
                     trackers.clear();
+                    // initialize the tracker
                     trackers.add(tracker, frame, target.starting_BBOx);
+                    // update the tracker
                     trackers.update(frame);
+                    // update the target struct with histogram ( flag set to 1 )
                     target.target_update(frame, &trackers, 1);
+                    // reset conunters
                     count_hist = 0;
                     counter_lost = 0;
                     currentState = TRACK;
@@ -547,38 +507,46 @@ int main()
                 }
                 else
                 {
+                    // increase counter
                     counter_lost++;
                 }
             }
-            else if (counter_lost == 10)
+            else if (counter_lost == max_counter_lost)
             {
-                // if fallisco il rematching -> go to DETECT
+                // if could not re-id, go to DETECT
                 cout << "lost counter " << counter_lost << endl;
+                // clear the tracker
                 trackers.clear();
                 tracker = TrackerCSRT::create();
+                // reset counter
                 counter_lost = 0;
+                // change state
                 currentState = DETECT;
                 prevState = LOST_TRACK;
             }
             else
             {
                 cout << "lost counter " << counter_lost << endl;
+                // increase counter
                 counter_lost++;
+                // keep state
                 currentState = LOST_TRACK;
                 prevState = LOST_TRACK;
             }
 
             break;
-            // default:
-            //     currentState = DETECT;
-            //     break;
         }
 
-        // --- Show Stuff
-        // start chrono
+        // --- Show image
+
+        // start chrono for visualization time
         start = chrono::high_resolution_clock::now();
 
-        // print rectangles on the frame
+        // print frame index on frame
+        cv::putText(frame, "frame: " + to_string(index), cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 1);
+
+        // print rectangles on the frame:
+        // print detection rectangles and last tracking target box
         if (!(ROIs.empty()) && currentState != TRACK)
         {
             for (int j = 0; j < ROIs.size(); j++)
@@ -587,6 +555,7 @@ int main()
             }
             cv::rectangle(frame, target.boundingBox, Scalar(0, 255, 255), 1, 8, 0);
         }
+        // print only the target of tracking state
         else if (currentState == TRACK)
         {
             cv::rectangle(frame, target.boundingBox, Scalar(0, 0, 255), 1, 8, 0);
@@ -595,36 +564,46 @@ int main()
         ROIs.clear();
 
         // plot di debug
-        if (!(TMP_ROIs.empty()))
-        {
-            for (int j = 0; j < TMP_ROIs.size(); j++)
-            {
-                cv::rectangle(frame, TMP_ROIs[j], Scalar(255, 255, 0), 3, 8, 0);
-            }
-            TMP_ROIs.clear();
-        }
+        // if (!(TMP_ROIs.empty()))
+        // {
+        //     for (int j = 0; j < TMP_ROIs.size(); j++)
+        //     {
+        //         cv::rectangle(frame, TMP_ROIs[j], Scalar(255, 255, 0), 3, 8, 0);
+        //     }
+        //     TMP_ROIs.clear();
+        // }
 
         cv::imshow("Video", frame);
 
-        // stop chrono
+        // stop chrono for visualization time
         end = chrono::high_resolution_clock::now();
-        // eval time taken
+        // eval time taken for visualization time
         time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
         ts_visu.push_back((float)time_taken / 1000.0);
 
-        if (waitKey(1) == 27) //1000 / 30
+        if (waitKey(60) == 27)
         {
             return 0;
         }
+
+        // save image
+        string save_string = "../DemoStateMachine/det_" + to_string(index) + ".jpg";
+        imwrite(save_string, frame);
+        index++;
+
     }
 
+    // evaluate times
     float t_det = std::accumulate(ts_det.begin(), ts_det.end(), 0.0) / ts_det.size();
     float t_track = std::accumulate(ts_track.begin(), ts_track.end(), 0.0) / ts_track.size();
     float t_visu = std::accumulate(ts_visu.begin(), ts_visu.end(), 0.0) / ts_visu.size();
 
+    std::cout << endl;
+    std::cout << "________________________________________________" << endl;
     std::cout << "Timing :" << endl;
     std::cout << "   Detection time     :  " << t_det << "\t[ms]" << endl;
     std::cout << "   Tracking  time     :  " << t_track << "\t[ms]" << endl;
     std::cout << endl;
     std::cout << "   Visualization time :  " << t_visu << "\t[ms]" << endl;
+    std::cout << "________________________________________________" << endl;
 }
