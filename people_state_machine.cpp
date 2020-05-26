@@ -6,6 +6,7 @@
 #include <opencv2/videoio.hpp>
 
 #include "./person.hpp"
+#include "./configurator.h"
 
 #include <chrono>
 #include <ctime>
@@ -87,6 +88,12 @@ enum DetectMachine
 
 int main(int argc, char **argv)
 {
+
+    // Create the configurator object and parse conf.ini file
+    ConfigReader *p = ConfigReader::getInstance();
+    p->parseFile((char *) argv[1]);
+
+
     // ---- Import Video ----    //// TO DO: convert into a realsense video streaming
 
     // acquisition video
@@ -129,10 +136,14 @@ int main(int argc, char **argv)
     upbody_cascade.load(haar_upbody);
 
     // ---- Classifier Types & Flags ----
+    ushort classifier_number;
+    p->getValue("CLASSIFIER_NUMBER". &classifier_number);
     string classifierTypes[3] = {"PEDESTRIAN", "FULBODY", "UPPERBODY"};
-    string classifierType = classifierTypes[1];
+    string classifierType = classifierTypes[classifier_number];
     int classifier_counter = 0;
-    int max_frame_try = 200;
+    int max_frame_try;
+
+    p->getValue("MAX_FRAME_TRY", &max_frame_try);
 
     // ArUco marker dictionary and paramters
     Ptr<aruco::Dictionary> dict = aruco::getPredefinedDictionary(aruco::DICT_5X5_50);
@@ -154,11 +165,17 @@ int main(int argc, char **argv)
 
     int tracker_counter = 0; // counter for tracker state
     int counter_lost = 0;
-    int max_counter_lost = 60;
-    int max_frame_lost = 50; // limit for cycle on re-identification
-    float thr_hist_comp = 5; // threshold of comparison hist
+    int max_counter_lost;
+    p->getValue("MAX_COUNTER_LOST", &max_counter_lost);
 
-    int thr_euclidean = 100; // parameter for euclidean distance from center
+    int max_frame_lost;         // limit for cycle on re-identification
+    p->getValue("MAX_FRAME_LOST", &max_frame_lost);
+
+    float thr_hist_comp;        // threshold of comparison hist
+    p->getValue("THR_HIST_COMP", &thr_hist_comp);
+
+    int thr_euclidean; // parameter for euclidean distance from center
+    p->getValue("THR_EUCLIDEAN", &thr_euclidean);
 
     // supplemental parameters
     Point2d centre_bbox;
@@ -169,7 +186,8 @@ int main(int argc, char **argv)
 
     // counter for refreshing and checking histogram of target on tracking state
     int count_hist = 0;
-    int refresh_hist = 30;
+    int refresh_hist;
+    p->getValue("REFRESH_HIST", &refresh_hist);
 
     // variables for checking jumping of tracker
     Point2d tmp_delta;
