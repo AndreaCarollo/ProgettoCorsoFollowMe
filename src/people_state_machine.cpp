@@ -1,12 +1,13 @@
+#include "./lib/followme.h"
+#include "./lib/person.h"
+#include "./lib/configurator.h"
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
-
-#include "./person.hpp"
-#include "./configurator.h"
 
 #include <chrono>
 #include <ctime>
@@ -98,7 +99,9 @@ int main(int argc, char **argv)
 
     // acquisition video
     // VideoCapture cap("../../../Dataset/Our_Video/test7.mp4");
-    VideoCapture cap(argv[1]);
+    VideoCapture cap(argv[2]);
+    // VideoCapture cap(0);
+
 
     // initialization of windows image show
     namedWindow("Video", WINDOW_KEEPRATIO);
@@ -137,13 +140,13 @@ int main(int argc, char **argv)
 
     // ---- Classifier Types & Flags ----
     ushort classifier_number;
-    p->getValue("CLASSIFIER_NUMBER". &classifier_number);
+    p->getValue("CLASSIFIER_NUMBER", (int&)classifier_number);
     string classifierTypes[3] = {"PEDESTRIAN", "FULBODY", "UPPERBODY"};
     string classifierType = classifierTypes[classifier_number];
     int classifier_counter = 0;
     int max_frame_try;
 
-    p->getValue("MAX_FRAME_TRY", &max_frame_try);
+    p->getValue("MAX_FRAME_TRY", max_frame_try);
 
     // ArUco marker dictionary and paramters
     Ptr<aruco::Dictionary> dict = aruco::getPredefinedDictionary(aruco::DICT_5X5_50);
@@ -154,7 +157,7 @@ int main(int argc, char **argv)
     int user_ID = 25;
 
     // ---- Tracker Initialization ---- TO DO: can be put in a function
-    MultiTracker trackers;
+    MultiTracker trackers, empty_trackers;
     Ptr<Tracker> tracker = TrackerCSRT::create();
 
     // Some initialization of parameters for state machine
@@ -166,16 +169,16 @@ int main(int argc, char **argv)
     int tracker_counter = 0; // counter for tracker state
     int counter_lost = 0;
     int max_counter_lost;
-    p->getValue("MAX_COUNTER_LOST", &max_counter_lost);
+    p->getValue("MAX_COUNTER_LOST", max_counter_lost);
 
     int max_frame_lost;         // limit for cycle on re-identification
-    p->getValue("MAX_FRAME_LOST", &max_frame_lost);
+    p->getValue("MAX_FRAME_LOST", max_frame_lost);
 
     float thr_hist_comp;        // threshold of comparison hist
-    p->getValue("THR_HIST_COMP", &thr_hist_comp);
+    p->getValue("THR_HIST_COMP", thr_hist_comp);
 
     int thr_euclidean; // parameter for euclidean distance from center
-    p->getValue("THR_EUCLIDEAN", &thr_euclidean);
+    p->getValue("THR_EUCLIDEAN", thr_euclidean);
 
     // supplemental parameters
     Point2d centre_bbox;
@@ -187,7 +190,7 @@ int main(int argc, char **argv)
     // counter for refreshing and checking histogram of target on tracking state
     int count_hist = 0;
     int refresh_hist;
-    p->getValue("REFRESH_HIST", &refresh_hist);
+    p->getValue("REFRESH_HIST", refresh_hist);
 
     // variables for checking jumping of tracker
     Point2d tmp_delta;
@@ -226,7 +229,7 @@ int main(int argc, char **argv)
             // start chrono
             start = chrono::high_resolution_clock::now();
 
-            // detection on frame                                  // TODO: COnvert into a Switch
+            // detection on frame                                  // TODO: Convert into a Switch
             if (classifierType == classifierTypes[0])
             {
                 pedestrian_cascade.detectMultiScale(frame, ROIs, 1.4, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
@@ -255,7 +258,7 @@ int main(int argc, char **argv)
             }
             else if (classifierType == classifierTypes[2])
             {
-                upbody_cascade.detectMultiScale(frame, ROIs, 1.3, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+                upbody_cascade.detectMultiScale(frame, ROIs, 1.25, 5, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
                 if (ROIs.empty() & classifier_counter == max_frame_try)
                 {
                     classifierType = classifierTypes[0];
@@ -351,10 +354,10 @@ int main(int argc, char **argv)
                 delta = std::sqrt(tmp_delta.x * tmp_delta.x + tmp_delta.y * tmp_delta.y);
 
                 // if stay around the same position
-                if (delta < 30)
+                if (delta < 10)
                 {
                     // check for people detection
-                    pedestrian_cascade.detectMultiScale(frame, TMP_ROIs, 1.4, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+                    pedestrian_cascade.detectMultiScale(frame, TMP_ROIs, 1.3, 25, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
 
                     // check overlapping area
                     if (!(TMP_ROIs.empty()))
@@ -368,7 +371,7 @@ int main(int argc, char **argv)
                         if (*max_element(overlap_areas.begin(), overlap_areas.end()) < target.boundingBox.area() / 4.0)
                         {
                             flag_lost = true;
-                            std::cout << " --- lost da jump 1, Delta :" << delta << endl;
+                            std::cout << " --- lost da jump 1, Delta: " << delta << endl;
                         }
                     }
                     // free the vector
@@ -377,7 +380,7 @@ int main(int argc, char **argv)
                 // if the distance is greater than delta_max, go to LOST TRACK
                 else if( delta > 70 )
                 {
-                    std::cout << " --- lost da jump 2, Delta :" << delta << endl;
+                    std::cout << " --- lost da jump 2, Delta: " << delta << endl;
                     flag_lost = true;
                 }
                 else{
@@ -395,7 +398,7 @@ int main(int argc, char **argv)
                 // compare new hist with previous, if different very much -> LOST_TRACK
                 double comparison = cv::compareHist(target.histogram, old_hist, 1);
                 std::cout << comparison << endl;
-                if (comparison < 2)
+                if (comparison < 25)
                 {
                     std::cout << " --- lost da hist comp:" << comparison << endl;
                     flag_lost = true;
@@ -510,9 +513,9 @@ int main(int argc, char **argv)
                     target.starting_BBOx = New_ROI;
                     // clear the tracker
                     tracker = TrackerCSRT::create();
-                    trackers.clear();
+                    trackers = empty_trackers;
                     // initialize the tracker
-                    trackers.add(tracker, frame, target.starting_BBOx);
+                    trackers.add(tracker, frame, New_ROI);
                     // update the tracker
                     trackers.update(frame);
                     // update the target struct with histogram ( flag set to 1 )
@@ -534,7 +537,7 @@ int main(int argc, char **argv)
                 // if could not re-id, go to DETECT
                 cout << "lost counter " << counter_lost << endl;
                 // clear the tracker
-                trackers.clear();
+                trackers = empty_trackers;
                 tracker = TrackerCSRT::create();
                 // reset counter
                 counter_lost = 0;
@@ -576,7 +579,9 @@ int main(int argc, char **argv)
         // print only the target of tracking state
         else if (currentState == TRACK)
         {
-            cv::rectangle(frame, target.boundingBox, Scalar(0, 0, 255), 1, 8, 0);
+            if(!(target.boundingBox.empty())){
+                cv::rectangle(frame, target.boundingBox, Scalar(0, 0, 255), 1, 8, 0);
+            }
         }
 
         ROIs.clear();
@@ -599,14 +604,15 @@ int main(int argc, char **argv)
         time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
         ts_visu.push_back((float)time_taken / 1000.0);
 
-        if (waitKey(60) == 27)
+        if (waitKey(1) == 27)
         {
             return 0;
         }
 
-        // save image
-        string save_string = "../DemoStateMachine/det_" + to_string(index) + ".jpg";
-        imwrite(save_string, frame);
+        // // save image
+        // string save_string = "../DemoStateMachine/det_" + to_string(index) + ".jpg";
+        // imwrite(save_string, frame);
+
         index++;
 
     }

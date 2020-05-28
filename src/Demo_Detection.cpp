@@ -4,7 +4,8 @@
 #include <opencv2/highgui.hpp>
 // #include <opencv2/videoio.hpp>
 
-#include "./person.hpp"
+#include "./lib/followme.h"
+#include "./lib/person.h"
 
 #include <chrono>
 #include <ctime>
