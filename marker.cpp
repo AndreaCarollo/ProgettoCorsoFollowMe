@@ -36,7 +36,7 @@ int main()
     Mat inImg = imread("../../../Dataset/Markers/img14.jpg");
     namedWindow("Original Img", WINDOW_NORMAL);
     resizeWindow("Original Img", 800, 600);
-    Mat inImg = imread("../marker_example.png");
+    //Mat inImg = imread("../marker_example.png");
     imshow("Original Img", inImg); 
 
     // Marker detection
