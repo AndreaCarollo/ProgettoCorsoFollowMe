@@ -44,10 +44,9 @@ int main()
 
 
 
-    while(true){
+    while((cap >> frame).grab()){
         i++;
 
-        cap >> frame;
         frame.copyTo(frame_copy);
 
         // Marker detection
@@ -66,8 +65,13 @@ int main()
         // Write the frame in the output video
         //video.write(frame_copy);
 
+        putText(frame_copy, "frame: " + to_string(i), cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 1);
         imshow("Markers detection", frame_copy);
-        waitKey(10);
+        waitKey(30);
+
+        // Write the images of the frames
+        //string save_string = "../DemoMarker/frame_" + to_string(i) + ".jpg";
+        //imwrite(save_string, frame_copy);
     }
 
     destroyAllWindows();
