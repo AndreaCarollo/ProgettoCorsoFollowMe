@@ -127,9 +127,9 @@ int main(int argc, char **argv)
     Target target;
 
     // ---- Detector initialization ---
-    String haar_fullbody = "../trained//haarcascade_fullbody.xml";
-    String haar_pedestrian = "../trained/haarcascade_pedestrian.xml";
-    String haar_upbody = "../trained/haarcascade_upperbody.xml";
+    String haar_fullbody = "../src/trained//haarcascade_fullbody.xml";
+    String haar_pedestrian = "../src/trained/haarcascade_pedestrian.xml";
+    String haar_upbody = "../src/trained/haarcascade_upperbody.xml";
 
     // ---- Create classifiers ----
     CascadeClassifier fullbody_cascade;
@@ -216,6 +216,15 @@ int main(int argc, char **argv)
 
     // frame indicator
     int index = 0;
+
+    cap >> frame;
+
+    // save video
+    int save_video;
+    p->getValue("SAVE_VIDEO", save_video);
+    int frame_width = frame.cols;
+    int frame_height = frame.rows;
+    VideoWriter video("../Demo_StateMachine.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 10, Size(frame_width, frame_height), true);
 
     // ----------------------------------------------------------
     // ---- START STATE MACHINE ---------------------------------
@@ -509,7 +518,7 @@ int main(int argc, char **argv)
                 // find maximum element of the matching
                 int maxElementIndex = std::max_element(compare_hist.begin(), compare_hist.end()) - compare_hist.begin();
 
-                if (compare_hist[maxElementIndex] > thr_hist_comp & ROIs[maxElementIndex].area() > 120*100)
+                if (compare_hist[maxElementIndex] > thr_hist_comp & ROIs[maxElementIndex].area() > 120 * 100)
                 {
                     Rect2d New_ROI = ROIs[maxElementIndex];
 
@@ -619,6 +628,10 @@ int main(int argc, char **argv)
         // imwrite(save_string, frame);
 
         index++;
+        if (save_video == 1 )
+        {
+            video.write(frame);
+        }
     }
 
     // evaluate times
