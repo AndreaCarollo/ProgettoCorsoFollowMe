@@ -224,7 +224,7 @@ int main(int argc, char **argv)
     p->getValue("SAVE_VIDEO", save_video);
     int frame_width = frame.cols;
     int frame_height = frame.rows;
-    VideoWriter video("../Demo_StateMachine.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 10, Size(frame_width, frame_height), true);
+    VideoWriter video("../Demo_ReId.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 10, Size(frame_width, frame_height), true);
 
     // ----------------------------------------------------------
     // ---- START STATE MACHINE ---------------------------------
@@ -360,63 +360,67 @@ int main(int argc, char **argv)
             // check if the tracker falls by jumping somewhere
             it_story = target.pos2D_story.size() - 1;
 
+            if (it_story >= 3)
+            {
+                // evaluate the distance between the last two positions
+                tmp_delta = (Point2d)(target.pos2D_story[it_story].x - target.pos2D_story[it_story - 1].x, target.pos2D_story[it_story].y - target.pos2D_story[it_story - 1].y);
+                delta = std::sqrt(tmp_delta.x * tmp_delta.x + tmp_delta.y * tmp_delta.y);
+
+                // if stay around the same position
+                if (delta < 10)
+                {
+                    // check for people detection
+                    fullbody_cascade.detectMultiScale(frame, TMP_ROIs, 1.05, 6, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+                    // pedestrian_cascade.detectMultiScale(frame, TMP_ROIs, 1.3, 25, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+
+                    // check overlapping area
+                    if (!(TMP_ROIs.empty()))
+                    {
+                        for (int i = 0; i < TMP_ROIs.size(); i++)
+                        {
+                            overlap_areas.push_back((target.boundingBox & TMP_ROIs[i]).area());
+                        }
+
+                        // if the tracker do not overlapp any detection box, go to LOST TRACK
+                        if (*max_element(overlap_areas.begin(), overlap_areas.end()) < target.boundingBox.area() / 4.0)
+                        {
+                            flag_lost = true;
+                            std::cout << " --- lost da jump 1, Delta: " << delta << endl;
+                        }
+                    }
+                    // free the vector
+                    overlap_areas.clear();
+                }
+                // if the distance is greater than delta_max, go to LOST TRACK
+                else if (delta > 70)
+                {
+                    std::cout << " --- lost da jump 2, Delta: " << delta << endl;
+                    flag_lost = true;
+                }
+                else
+                {
+                    flag_lost = false;
+                }
+            }
             // Update the target class & it's histogram every "refresh_hist" frames,
             // only if the previous check do not imply the change of state
             if (count_hist == refresh_hist && tracker_counter != max_frame_lost && flag_lost == false)
             {
-                if (it_story >= 3)
+
+                // flag_lost = false;
+                cv::MatND old_hist = target.histogram;
+                target.target_update(frame, &trackers, 1);
+                count_hist = 0;
+                // compare new hist with previous, if different very much -> LOST_TRACK
+                double comparison = cv::compareHist(target.histogram, old_hist, 1);
+                std::cout << comparison << endl;
+                if (comparison < 25)
                 {
-                    // evaluate the distance between the last two positions
-                    tmp_delta = (Point2d)(target.pos2D_story[it_story].x - target.pos2D_story[it_story - 1].x, target.pos2D_story[it_story].y - target.pos2D_story[it_story - 1].y);
-                    delta = std::sqrt(tmp_delta.x * tmp_delta.x + tmp_delta.y * tmp_delta.y);
-
-                    // if stay around the same position
-                    if (delta < 10)
-                    {
-                        // check for people detection
-                        pedestrian_cascade.detectMultiScale(frame, TMP_ROIs, 1.3, 25, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-
-                        // check overlapping area
-                        if (!(TMP_ROIs.empty()))
-                        {
-                            for (int i = 0; i < TMP_ROIs.size(); i++)
-                            {
-                                overlap_areas.push_back((target.boundingBox & TMP_ROIs[i]).area());
-                            }
-
-                            // if the tracker do not overlapp any detection box, go to LOST TRACK
-                            if (*max_element(overlap_areas.begin(), overlap_areas.end()) < target.boundingBox.area() / 4.0)
-                            {
-                                flag_lost = true;
-                                std::cout << " --- lost da jump 1, Delta: " << delta << endl;
-                            }
-                        }
-                        // free the vector
-                        overlap_areas.clear();
-                    }
-                    // if the distance is greater than delta_max, go to LOST TRACK
-                    else if (delta > 70)
-                    {
-                        std::cout << " --- lost da jump 2, Delta: " << delta << endl;
-                        flag_lost = true;
-                    }
-                    else
-                    {
-                        // flag_lost = false;
-                        cv::MatND old_hist = target.histogram;
-                        target.target_update(frame, &trackers, 1);
-                        count_hist = 0;
-                        // compare new hist with previous, if different very much -> LOST_TRACK
-                        double comparison = cv::compareHist(target.histogram, old_hist, 1);
-                        std::cout << comparison << endl;
-                        if (comparison < 25)
-                        {
-                            std::cout << " --- lost da hist comp:" << comparison << endl;
-                            flag_lost = true;
-                        }
-                    }
+                    std::cout << " --- lost da hist comp:" << comparison << endl;
+                    flag_lost = true;
                 }
             }
+
             else
             {
                 target.target_update(frame, &trackers, 0);
@@ -469,7 +473,8 @@ int main(int argc, char **argv)
             //---- Detection ------------
             if (classifierType == classifierTypes[0])
             {
-                pedestrian_cascade.detectMultiScale(frame, ROIs, 1.6, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+                pedestrian_cascade.detectMultiScale(frame, ROIs, 1.05, 28, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+                //pedestrian_cascade.detectMultiScale(frame, ROIs, 1.6, 30, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
                 if (ROIs.empty() & classifier_counter == max_frame_try)
                 {
                     classifierType = classifierTypes[1];
@@ -618,7 +623,7 @@ int main(int argc, char **argv)
         time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
         ts_visu.push_back((float)time_taken / 1000.0);
 
-        if (waitKey(1) == 27)
+        if (waitKey(1000 / 30) == 27)
         {
             return 0;
         }
@@ -628,7 +633,7 @@ int main(int argc, char **argv)
         // imwrite(save_string, frame);
 
         index++;
-        if (save_video == 1 )
+        if (save_video == 1)
         {
             video.write(frame);
         }
