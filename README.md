@@ -10,6 +10,14 @@ Giovanni Ferrara giovanni.ferrara@studenti.unitn.it
 Gianni Lunardi gianni.lunardi@studenti.unitn.it
 Matteo Tomasi matteo.tomasi-1@studenti.unitn.it
 
+## Detection - DEMO
+The detection demo shown the identified people in the frame using the 3 detector used in the main code.
+Is uses 3 pre-trained haar-cascade method: Fullbody, Pedestrian, Uperbody.
+The people found are highlited with a rectangle. On the frame will be shown the legenda of the used colours.
+Compile the project in a "build" folder inside the demo one.
+A video that can be used for the demo is provide at the following drive folder: https://drive.google.com/drive/folders/1Aatx3wd_ccgJQxDaE3KnwDyorOCz8HlN?usp=sharing.
+To run the code execute Demo_dect with the path of the video: $ ./Demo_dect <path_of_video>
+
 ## Target Identification - DEMO
 The target identification demo uses one of the two video contained in the drive folder https://drive.google.com/drive/folders/1WtdYyrYelBe7RNGn29iIWYpMJgJqAd4f?usp=sharing. Compile the project in a "build" folder inside the demo one. Then execute Demo_TI, specifying as second argument "(path_to_the_video_folder)/video_name.mp4".
 The code displays a video in which the marker on the target (Matteo) is detected.
