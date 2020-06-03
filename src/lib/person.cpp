@@ -161,7 +161,7 @@ double comparison_hist(cv::Mat frame, cv::MatND hist_1, cv::Rect ROI2)
 {
     cv::MatND hist_2 = evaluate_hist(frame,ROI2);
     int compare_method = 1;
-    double comparison = cv::compareHist(hist_1, hist_2, compare_method);
+    double comparison = cv::compareHist(hist_1, hist_2, CV_COMP_INTERSECT); // compare_method);
     return comparison;
 }
 
