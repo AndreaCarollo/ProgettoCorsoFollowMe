@@ -36,7 +36,7 @@ int main()
     int frame_height = cap.get(CAP_PROP_FRAME_HEIGHT);
 
     // VideoWriter object
-    //VideoWriter video("out_video.avi",VideoWriter::fourcc('M','J','P','G'),10, Size(frame_width,frame_height));
+    VideoWriter video("out_video.avi",VideoWriter::fourcc('M','J','P','G'),10, Size(frame_width,frame_height));
 
     // Define the dictionary and parameters of the ArUco markers
     Ptr<aruco::Dictionary> dict = aruco::getPredefinedDictionary(aruco::DICT_5X5_50);
@@ -63,7 +63,7 @@ int main()
         }
 
         // Write the frame in the output video
-        //video.write(frame_copy);
+        video.write(frame_copy);
 
         putText(frame_copy, "frame: " + to_string(i), cv::Point(10, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(118, 185, 0), 1);
         imshow("Markers detection", frame_copy);
@@ -75,5 +75,6 @@ int main()
     }
 
     destroyAllWindows();
+    video.release();
     return 0;
 }
