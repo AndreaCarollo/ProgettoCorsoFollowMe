@@ -23,7 +23,8 @@ The target identification demo uses one of the two video contained in the drive 
 The code displays a video in which the marker on the target (Matteo) is detected.
 
 ## Path Planning - DEMO
-The path planning demo uses a Realsense example .bag file, that can be find at the link https://github.com/IntelRealSense/librealsense/blob/master/doc/sample-data.md - named as "Outdoor scene with D435i pre-production sample (Depth from Stereo with IMU)" -. Download this file and put it in the main folder of the demo. Compile the project inside a "build" folder and execute Demo_PP. 
+The path planning demo uses a Realsense example .bag file, that can be found at the link https://github.com/IntelRealSense/librealsense/blob/master/doc/sample-data.md - named as "Outdoor scene with D435i pre-production sample (Depth from Stereo with IMU)" -.
+The path planning demo videos can be found in the drive folder at https://drive.google.com/open?id=1KAc75xrD2diaJRUN_Te4FWHkSmN9lR7I  Download this file and put it in the main folder of the demo. Compile the project inside a "build" folder and execute Demo_PP. 
 The code will show three window:
   - The RGB frame with a red marker in the "target point" (2D)
   - The point cloud viewer with the original and the transformed reference system and a red marker in the "target point" (2D)
