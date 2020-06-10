@@ -91,9 +91,9 @@ int main(int argc, char **argv)
         // start chrono
 
         // Detection on frame
-        pedestrian_cascade.detectMultiScale(frame, ROIs_ped, 1.14, 24, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-        fullbody_cascade.detectMultiScale(frame, ROIs_ful, 1.05, 6, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
-        upbody_cascade.detectMultiScale(frame, ROIs_up, 1.05, 6, 0 | CASCADE_DO_CANNY_PRUNING, Size(50, 50));
+        pedestrian_cascade.detectMultiScale(frame, ROIs_ped, 1.25, 25, 0 | CASCADE_SCALE_IMAGE, Size(50, 50));
+        fullbody_cascade.detectMultiScale(frame, ROIs_ful, 1.05, 6, 0 | CASCADE_SCALE_IMAGE, Size(50, 50));
+        upbody_cascade.detectMultiScale(frame, ROIs_up, 1.05, 6, 0 | CASCADE_SCALE_IMAGE, Size(50, 50));
 
         if (!(ROIs_ped.empty()))
         {
