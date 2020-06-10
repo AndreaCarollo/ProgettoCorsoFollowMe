@@ -18,6 +18,8 @@ Compile the project in a "build" folder inside the demo one.
 A video that can be used for the demo is provide at the following drive folder: https://drive.google.com/drive/folders/1KhEnGBXV-ncVonFk5p3cmrCbCsjQD0Uu?usp=sharing.
 To run the code execute Demo_dect with the path of the video: $ ./Demo_dect <path_of_video>
 
+Note: to use completely the OpenCV functions, you need also the OpenCV-contrib packages
+
 ## Target Identification - DEMO
 The target identification demo uses one of the two video contained in the drive folder https://drive.google.com/drive/folders/1KhEnGBXV-ncVonFk5p3cmrCbCsjQD0Uu?usp=sharing. Compile the project in a "build" folder inside the demo one. Then execute Demo_TI, specifying as second argument "(path_to_the_video_folder)/video_name.mp4".
 The code displays a video in which the marker on the target (Matteo) is detected.
